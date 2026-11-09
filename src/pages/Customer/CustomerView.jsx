@@ -25,7 +25,7 @@ export default function CustomerView({ products, cart, changeQty, banners, searc
       
       <div style={{ maxWidth: 1248, margin: "0 auto", paddingBottom: 60 }}>
         
-        {/* Top Mohalla Trust Bar */}
+        {/* Top Trust Bar */}
         <div style={{ 
           background: "linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%)", 
           color: "white", padding: "12px 20px", borderRadius: 12, marginBottom: 20,

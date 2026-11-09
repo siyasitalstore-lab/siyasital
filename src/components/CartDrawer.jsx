@@ -4,7 +4,7 @@ import { money, STORE_CONFIG, getWhatsAppUrl } from "../data/store";
 
 export default function CartDrawer({ items, subtotal, onChange, onClose, onCheckout }) {
   const handleQuickWhatsApp = () => {
-    let msg = `🛍️ *Order Query from Mohalla Mart Basket*\n\n`;
+    let msg = `🛍️ *Order Query from Siyasital Store Basket*\n\n`;
     items.forEach((i, idx) => {
       msg += `${idx + 1}. ${i.name} x ${i.qty} = ${money(i.price * i.qty)}\n`;
     });

@@ -1,4 +1,4 @@
-# Mohalla Mart 🏬
+# Siyasital Store 🏬
 
 > A modern, hyper-local neighborhood grocery store web application featuring rapid 10–15 minute store pickups, POS counter billing, multi-variant products, customer credit ledger (Khata), daily bills register, store expense tracking, and Supabase cloud synchronization.
 
@@ -46,7 +46,7 @@
 
 1. Open your project on **[supabase.com](https://supabase.com)**.
 2. Go to **SQL Editor** and run the contents of [`supabase-schema.sql`](./supabase-schema.sql).
-3. In your live Mohalla Mart website:
-   - Click the **"Connect DB"** button in the top navbar.
+3. In your live Siyasital Store website:
+   - Log in to the Admin Portal (`/login`) and navigate to the **"Supabase Cloud DB"** tab.
    - Enter your Project URL and Anon Key.
    - Click **"Push Real Grocery Catalog to Supabase"** to populate 30+ authentic grocery products immediately.

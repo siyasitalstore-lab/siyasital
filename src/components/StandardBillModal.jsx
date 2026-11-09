@@ -332,7 +332,7 @@ export default function StandardBillModal({ order, onClose }) {
               * Please inspect items at the pickup counter. Returns or exchanges accepted within 24 hours with this receipt.
             </p>
             <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: "#0f172a" }}>
-              🙏 Thank you for shopping with Mohalla Mart! Have a great day! 🙏
+              🙏 Thank you for shopping with Siyasital Store! Have a great day! 🙏
             </p>
           </div>
         </div>

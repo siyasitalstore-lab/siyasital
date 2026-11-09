@@ -68,7 +68,7 @@ export default function Layout({
             <div style={{ background: 'var(--primary)', color: 'white', padding: 8, borderRadius: 12 }}>
               <ShoppingCart size={20} />
             </div>
-            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>MohallaMart</span>
+            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>SiyasitalStore</span>
           </Link>
 
           <div style={{ flex: 1, maxWidth: 600, position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -168,7 +168,7 @@ export default function Layout({
               <div style={{ background: 'var(--primary)', color: 'white', padding: 6, borderRadius: 8 }}>
                 <ShoppingCart size={16} />
               </div>
-              <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>MohallaMart</span>
+              <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>SiyasitalStore</span>
             </div>
             <p style={{ color: 'var(--text-gray)', fontSize: 14 }}>Your neighborhood grocery store, packed and ready for pickup in 10–15 minutes.</p>
           </div>
@@ -190,7 +190,7 @@ export default function Layout({
           </div>
         </div>
         <div style={{ maxWidth: 1248, margin: '40px auto 0', borderTop: '1px solid var(--border)', paddingTop: 24, fontSize: 14, textAlign: 'center', color: 'var(--text-gray)' }}>
-          © 2026 MohallaMart Technologies
+          © 2026 SiyasitalStore Technologies
         </div>
       </footer>
 

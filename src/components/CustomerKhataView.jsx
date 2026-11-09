@@ -108,7 +108,7 @@ export default function CustomerKhataView({ customers = [], updateCustomers, ord
       id: `c_${Date.now()}`,
       name: newCustForm.name.trim(),
       phone: newCustForm.phone.trim() || "-",
-      address: newCustForm.address.trim() || "Local Mohalla Resident",
+      address: newCustForm.address.trim() || "Local Resident",
       email: newCustForm.email.trim() || "",
       khataLimit: Number(newCustForm.khataLimit) || 3000,
       notes: newCustForm.notes.trim() || "Regular customer",

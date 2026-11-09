@@ -22,7 +22,7 @@ export default function ContactSupport() {
           <Mail size={32} color="var(--primary)" style={{ margin: '0 auto 16px' }} />
           <h3 style={{ margin: '0 0 8px 0', fontSize: 20 }}>Email Us</h3>
           <p style={{ color: 'var(--text-gray)', margin: '0 0 16px 0', fontSize: 14 }}>We reply within 2 hours</p>
-          <a href="mailto:support@mohallamart.com" style={{ fontWeight: 700, color: 'var(--text-dark)', textDecoration: 'none', fontSize: 18 }}>support@mohallamart.com</a>
+          <a href="mailto:support@siyasitalstore.com" style={{ fontWeight: 700, color: 'var(--text-dark)', textDecoration: 'none', fontSize: 18 }}>support@siyasitalstore.com</a>
         </div>
 
         <div className="mm-card" style={{ textAlign: 'center', padding: 32 }}>

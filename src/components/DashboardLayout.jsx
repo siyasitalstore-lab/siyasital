@@ -16,7 +16,7 @@ export default function DashboardLayout({ theme, toggleTheme, user, onLogout, ti
             <ShieldCheck size={24} />
           </div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 18 }}>MohallaMart</div>
+            <div style={{ fontWeight: 800, fontSize: 18 }}>SiyasitalStore</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{title} Panel</div>
           </div>
         </div>

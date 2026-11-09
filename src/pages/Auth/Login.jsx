@@ -18,12 +18,13 @@ export default function Login({ onLogin, customers = [], updateCustomers }) {
     }
 
     let user;
-    if (!isSignUp && email.toLowerCase() === 'admin@mohallamart.com') {
-      user = { id: 'u3', name: 'Admin User', role: 'admin', email };
+    const cleanEmail = email.toLowerCase().trim();
+    if (!isSignUp && (cleanEmail === 'admin@siyasitalstore.com' || cleanEmail === 'admin@mohallamart.com')) {
+      user = { id: 'u3', name: 'Admin User', role: 'admin', email: cleanEmail };
       onLogin(user);
       navigate('/admin');
-    } else if (!isSignUp && email.toLowerCase() === 'manager@mohallamart.com') {
-      user = { id: 'u1', name: 'Ramesh Yadav', role: 'manager', email };
+    } else if (!isSignUp && (cleanEmail === 'manager@siyasitalstore.com' || cleanEmail === 'manager@mohallamart.com')) {
+      user = { id: 'u1', name: 'Ramesh Yadav', role: 'manager', email: cleanEmail };
       onLogin(user);
       navigate('/manager');
     } else {
@@ -111,8 +112,8 @@ export default function Login({ onLogin, customers = [], updateCustomers }) {
         {!isSignUp && (
           <div style={{ marginTop: 24, fontSize: 13, color: 'var(--text-gray)', background: '#f8fafc', padding: 16, borderRadius: 8 }}>
             <strong>Demo Accounts:</strong><br/>
-            Admin: <code>admin@mohallamart.com</code><br/>
-            Manager: <code>manager@mohallamart.com</code><br/>
+            Admin: <code>admin@siyasitalstore.com</code><br/>
+            Manager: <code>manager@siyasitalstore.com</code><br/>
             Customer: <i>Any other email</i>
           </div>
         )}

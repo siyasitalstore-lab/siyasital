@@ -1,12 +1,12 @@
 export const CATEGORIES = ["Chips & Namkeen", "Bakery & Cakes", "Cold Drinks", "Ice Cream", "Festival Specials", "Daily Essentials & Dairy"];
 
 export const STORE_CONFIG = {
-  name: "Mohalla Mart",
+  name: "Siyasital Store",
   tagline: "Your Trusted Neighbourhood Grocery Store 🛍️",
   whatsappNumber: "919876543210",
   displayPhone: "+91 98765 43210",
-  upiId: "mohallamart@upi",
-  address: "Shop No. 12, Main Market Road, Near City Park",
+  upiId: "siyasitalstore@upi",
+  address: "Shop No. 12, Main Market Road, Siyasital",
   pickupTime: "10-15 Mins",
 };
 
@@ -226,7 +226,7 @@ export const DEFAULT_CUSTOMERS = [
     name: "Anjali Gupta",
     phone: "9823456789",
     email: "anjali.gupta@example.com",
-    address: "House 14, Street 3, Near City Temple, Mohalla Colony",
+    address: "House 14, Street 3, Near City Temple, Main Market Area",
     khataLimit: 3000,
     notes: "Regular family customer, clears account monthly",
     paymentHistory: [],
@@ -237,7 +237,7 @@ export const DEFAULT_CUSTOMERS = [
     name: "Rakesh Sharma",
     phone: "9811224466",
     email: "rakesh.sharma@example.com",
-    address: "House 28, Main Market Road, Mohalla Colony",
+    address: "House 28, Main Market Road, Main Market Area",
     khataLimit: 5000,
     notes: "Sweet shop owner, monthly credit ledger",
     paymentHistory: [],
@@ -302,7 +302,7 @@ export function getWhatsAppUrl(phone, text) {
 export function generateUpiUrl(upiId, name, amount, orderId) {
   const id = upiId || STORE_CONFIG.upiId;
   const payeeName = encodeURIComponent(name || STORE_CONFIG.name);
-  return `upi://pay?pa=${id}&pn=${payeeName}&am=${amount}&cu=INR&tn=Order-${orderId || "MohallaMart"}`;
+  return `upi://pay?pa=${id}&pn=${payeeName}&am=${amount}&cu=INR&tn=Order-${orderId || "SiyasitalStore"}`;
 }
 
 /**

@@ -14,7 +14,7 @@ export default function Feedback() {
       <div style={{ maxWidth: 600, margin: '80px auto', textAlign: 'center' }}>
         <CheckCircle size={64} color="var(--primary)" style={{ margin: '0 auto 24px' }} />
         <h1 style={{ fontSize: 32, marginBottom: 16 }}>Thank You!</h1>
-        <p style={{ color: 'var(--text-gray)', fontSize: 16 }}>Your feedback helps us improve Mohalla Mart for everyone.</p>
+        <p style={{ color: 'var(--text-gray)', fontSize: 16 }}>Your feedback helps us improve Siyasital Store for everyone.</p>
       </div>
     );
   }
