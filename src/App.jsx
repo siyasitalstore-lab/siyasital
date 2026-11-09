@@ -220,7 +220,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login onLogin={setUser} customers={customers} updateCustomers={updateCustomers} />} />
         
-        <Route element={<Layout theme={theme} toggleTheme={toggleTheme} user={user} products={products} onLogout={() => { setUser(null); navigate('/'); }} cartItems={cartItems} cartCount={cartCount} subtotal={subtotal} changeQty={changeQty} onCheckoutClick={handleCheckoutClick} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSupabase={() => setShowSupabaseModal(true)} />}>
+        <Route element={<Layout theme={theme} toggleTheme={toggleTheme} user={user} products={products} onLogout={() => { setUser(null); navigate('/'); }} cartItems={cartItems} cartCount={cartCount} subtotal={subtotal} changeQty={changeQty} onCheckoutClick={handleCheckoutClick} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}>
           {/* Public / Customer Routes */}
           <Route path="/" element={<CustomerView products={products} cart={cart} changeQty={changeQty} banners={banners} searchQuery={searchQuery} user={user} onParchiOrder={async (newOrder) => await updateOrders([newOrder, ...orders])} />} />
           <Route path="/checkout" element={<Checkout cartItems={cartItems} subtotal={subtotal} products={products} updateProducts={updateProducts} orders={orders} updateOrders={updateOrders} setCart={setCart} user={user} />} />
@@ -236,7 +236,7 @@ export default function App() {
         {/* Manager Route */}
         <Route path="/manager" element={
           user?.role === 'manager' || user?.role === 'admin' ? 
-            <ManagerView theme={theme} toggleTheme={toggleTheme} customers={customers} updateCustomers={updateCustomers} orders={orders} updateOrders={updateOrders} products={products} updateProducts={updateProducts} expenses={expenses} updateExpenses={updateExpenses} user={user} onLogout={() => { setUser(null); navigate('/'); }} onOpenSupabase={() => setShowSupabaseModal(true)} /> : <Navigate to="/login" />
+            <ManagerView theme={theme} toggleTheme={toggleTheme} customers={customers} updateCustomers={updateCustomers} orders={orders} updateOrders={updateOrders} products={products} updateProducts={updateProducts} expenses={expenses} updateExpenses={updateExpenses} user={user} onLogout={() => { setUser(null); navigate('/'); }} /> : <Navigate to="/login" />
         } />
 
         {/* Admin Route */}

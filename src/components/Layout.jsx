@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, Search, ChevronDown, User, Store, LogIn, LayoutGrid, ShieldCheck, Moon, Sun, Mic, MicOff, MessageSquare, Database } from 'lucide-react';
+import { ShoppingCart, Search, ChevronDown, User, Store, LogIn, LayoutGrid, ShieldCheck, Moon, Sun, Mic, MicOff, MessageSquare } from 'lucide-react';
 import { CATEGORIES, POLICIES, STORE_CONFIG, getWhatsAppUrl } from '../data/store';
-import { isSupabaseConfigured } from '../lib/supabase';
 import CartDrawer from './CartDrawer';
 
 export default function Layout({ 
   theme, toggleTheme, user, products = [], onLogout, 
   cartItems, cartCount, subtotal, changeQty, onCheckoutClick, 
-  searchQuery, setSearchQuery, onOpenSupabase 
+  searchQuery, setSearchQuery 
 }) {
   const [cartOpen, setCartOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -99,33 +98,8 @@ export default function Layout({
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center', color: 'var(--text-dark)' }}>
+          <div style={{ display: 'flex', gap: 24, alignItems: 'center', color: 'var(--text-dark)' }}>
             
-            {/* Supabase Cloud Connection Status Button */}
-            <button
-              type="button"
-              onClick={onOpenSupabase}
-              title={isSupabaseConfigured() ? "Supabase Cloud Database Connected - Click to manage" : "Connect to Supabase Cloud Database"}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                background: isSupabaseConfigured() ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                color: isSupabaseConfigured() ? '#059669' : '#d97706',
-                border: `1px solid ${isSupabaseConfigured() ? '#a7f3d0' : '#fde68a'}`,
-                padding: '6px 12px',
-                borderRadius: 99,
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <Database size={13} />
-              <span>{isSupabaseConfigured() ? 'Supabase Active' : 'Connect DB'}</span>
-            </button>
-
             <button onClick={toggleTheme} className="mm-iconbtn" title="Toggle Theme" style={{ width: 36, height: 36 }}>
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>

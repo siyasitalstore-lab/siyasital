@@ -353,28 +353,6 @@ export default function ManagerView({
               </div>
 
               <div style={{ display: "flex", gap: 10 }}>
-                {onOpenSupabase && (
-                  <button
-                    type="button"
-                    onClick={onOpenSupabase}
-                    title="Supabase Cloud Database Sync"
-                    style={{
-                      background: isSupabaseConfigured() ? '#f0fdf4' : '#fffbeb',
-                      border: `1px solid ${isSupabaseConfigured() ? '#bbf7d0' : '#fef3c7'}`,
-                      color: isSupabaseConfigured() ? '#15803d' : '#b45309',
-                      padding: "10px 16px",
-                      borderRadius: 8,
-                      fontWeight: 700,
-                      fontSize: 14,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6
-                    }}
-                  >
-                    <Database size={16} /> {isSupabaseConfigured() ? 'Cloud DB Synced' : 'Sync Supabase'}
-                  </button>
-                )}
                 <button
                   type="button"
                   onClick={() => setActiveTab('pos')}
