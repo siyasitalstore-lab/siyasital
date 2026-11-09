@@ -20,7 +20,7 @@ export default function Carousel({ banners }) {
   const activeBanner = banners[current];
 
   return (
-    <div style={{ position: 'relative', width: '100%', maxWidth: 1200, margin: '0 auto 16px', overflow: 'hidden', borderRadius: 'var(--radius-lg)', height: 300, background: '#0F172A', boxShadow: 'var(--shadow-md)' }}>
+    <div style={{ position: 'relative', width: '100%', maxWidth: 1200, margin: '0 auto 16px', overflow: 'hidden', borderRadius: 'var(--radius-lg)', height: 'clamp(160px, 38vw, 300px)', background: '#0F172A', boxShadow: 'var(--shadow-md)' }}>
       {banners.map((b, i) => (
         <div
           key={b.id}
@@ -37,9 +37,9 @@ export default function Carousel({ banners }) {
           }}
         >
           <img src={b.image} alt={b.title} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
-          <div style={{ position: 'absolute', bottom: 40, left: 40, color: 'white', maxWidth: '60%' }}>
-            <h2 style={{ fontSize: 36, fontWeight: 800, margin: '0 0 12px 0', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{b.title}</h2>
-            <span style={{ background: 'var(--primary)', padding: '8px 16px', borderRadius: 20, fontWeight: 600, fontSize: 14 }}>Shop Now →</span>
+          <div style={{ position: 'absolute', bottom: 'clamp(16px, 4vw, 40px)', left: 'clamp(16px, 4vw, 40px)', color: 'white', maxWidth: '75%' }}>
+            <h2 style={{ fontSize: 'clamp(18px, 5vw, 34px)', fontWeight: 800, margin: '0 0 8px 0', textShadow: '0 2px 10px rgba(0,0,0,0.6)', lineHeight: 1.2 }}>{b.title}</h2>
+            <span style={{ background: 'var(--primary)', padding: '6px 14px', borderRadius: 20, fontWeight: 600, fontSize: 'clamp(11px, 2.8vw, 14px)', display: 'inline-block' }}>Shop Now →</span>
           </div>
         </div>
       ))}

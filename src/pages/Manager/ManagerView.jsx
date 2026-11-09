@@ -332,7 +332,7 @@ export default function ManagerView({
 
   return (
     <DashboardLayout user={user} onLogout={onLogout} title="Manager" sidebarItems={sidebarItems} activeTab={activeTab} onTabChange={setActiveTab}>
-      <div style={{ padding: '32px 40px', maxWidth: 1200, margin: '0 auto' }}>
+      <div className="dashboard-content-pad" style={{ maxWidth: 1200, margin: '0 auto' }}>
         
         {activeTab === "analytics" && (
           <div style={{ animation: 'fadeIn 0.3s' }}>
@@ -866,7 +866,7 @@ export default function ManagerView({
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 24, alignItems: 'start' }}>
+              <div className="pos-grid" style={{ alignItems: 'start' }}>
                 
                 {/* Product Selection */}
                 <div className="mm-block" style={{ padding: 0, overflow: 'hidden' }}>
@@ -1262,7 +1262,7 @@ export default function ManagerView({
         {/* QUICK REGISTER NEW CUSTOMER FOR POS CREDIT */}
         {showQuickAddCustModal && (
           <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-            <div className="mm-block" style={{ width: "100%", maxWidth: 460, padding: 28, animation: "scaleIn 0.2s ease" }}>
+            <div className="mm-block modal-dialog-responsive" style={{ width: "100%", maxWidth: 460, padding: 24, animation: "scaleIn 0.2s ease" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
                 <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--brand)" }}>
                   + Register Customer to Credit Ledger

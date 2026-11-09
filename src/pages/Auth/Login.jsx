@@ -150,8 +150,8 @@ export default function Login({ onLogin, customers = [], updateCustomers, staff 
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 80px)', padding: 20 }}>
-      <div className="mm-card" style={{ maxWidth: 460, width: '100%', padding: 40, textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.08)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 120px)', padding: '16px 12px' }}>
+      <div className="mm-card modal-dialog-responsive" style={{ maxWidth: 460, width: '100%', padding: 'clamp(20px, 5vw, 40px)', textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.08)' }}>
         
         {/* Header Icon */}
         <div style={{ 

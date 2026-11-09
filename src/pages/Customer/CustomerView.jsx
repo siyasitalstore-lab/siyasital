@@ -21,7 +21,7 @@ export default function CustomerView({ products, cart, changeQty, banners, searc
   });
 
   return (
-    <div style={{ padding: '24px 20px' }}>
+    <div className="page-container">
       
       <div style={{ maxWidth: 1248, margin: "0 auto", paddingBottom: 60 }}>
         
@@ -157,8 +157,8 @@ export default function CustomerView({ products, cart, changeQty, banners, searc
         <button 
           type="button"
           onClick={() => setParchiOpen(true)}
+          className="floating-parchi-btn"
           style={{ 
-            position: "fixed", bottom: 24, right: 24, zIndex: 90,
             background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
             color: "white", border: "none", borderRadius: 99, padding: "12px 20px",
             fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", gap: 8,

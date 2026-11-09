@@ -202,7 +202,7 @@ export default function Checkout({ cartItems, subtotal, products, updateProducts
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: "40px auto", padding: "0 20px", minHeight: '60vh', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: 32 }}>
+    <div className="checkout-grid" style={{ maxWidth: 1200, margin: "24px auto", padding: "0 16px", minHeight: '60vh' }}>
       
       {/* Left Column - Stepper */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

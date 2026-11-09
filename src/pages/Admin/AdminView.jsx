@@ -460,7 +460,7 @@ export default function AdminView({
 
   return (
     <DashboardLayout user={user} onLogout={onLogout} title="Admin Portal" sidebarItems={sidebarItems} activeTab={tab} onTabChange={setTab}>
-      <div style={{ padding: '32px 40px', maxWidth: 1240, margin: '0 auto' }}>
+      <div className="dashboard-content-pad" style={{ maxWidth: 1240, margin: '0 auto' }}>
       
       {/* 1. SALES & ANALYTICS TAB */}
       {tab === "stats" && (
@@ -639,34 +639,36 @@ export default function AdminView({
               {topProducts.length === 0 ? (
                 <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-gray)' }}>Orders will populate top products automatically.</div>
               ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ background: 'white', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text-gray)' }}>
-                      <th style={{ padding: '12px 20px', fontWeight: 700 }}>Rank & Item</th>
-                      <th style={{ padding: '12px 20px', fontWeight: 700, textAlign: 'center' }}>Units Sold</th>
-                      <th style={{ padding: '12px 20px', fontWeight: 700, textAlign: 'right' }}>Total Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {topProducts.map((p, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <span style={{ width: 24, height: 24, borderRadius: '50%', background: idx === 0 ? '#fef3c7' : '#f1f5f9', color: idx === 0 ? '#b45309' : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>
-                            {idx + 1}
-                          </span>
-                          <span style={{ fontSize: 20 }}>{p.emoji}</span>
-                          <strong style={{ fontSize: 14, color: 'var(--text-dark)' }}>{p.name}</strong>
-                        </td>
-                        <td style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 700, fontSize: 14 }}>
-                          {p.unitsSold}
-                        </td>
-                        <td style={{ padding: '14px 20px', textAlign: 'right', fontWeight: 800, fontSize: 14, color: 'var(--primary)' }}>
-                          {money(p.revenue)}
-                        </td>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: 'white', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text-gray)' }}>
+                        <th style={{ padding: '12px 20px', fontWeight: 700 }}>Rank & Item</th>
+                        <th style={{ padding: '12px 20px', fontWeight: 700, textAlign: 'center' }}>Units Sold</th>
+                        <th style={{ padding: '12px 20px', fontWeight: 700, textAlign: 'right' }}>Total Revenue</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {topProducts.map((p, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <span style={{ width: 24, height: 24, borderRadius: '50%', background: idx === 0 ? '#fef3c7' : '#f1f5f9', color: idx === 0 ? '#b45309' : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>
+                              {idx + 1}
+                            </span>
+                            <span style={{ fontSize: 20 }}>{p.emoji}</span>
+                            <strong style={{ fontSize: 14, color: 'var(--text-dark)' }}>{p.name}</strong>
+                          </td>
+                          <td style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 700, fontSize: 14 }}>
+                            {p.unitsSold}
+                          </td>
+                          <td style={{ padding: '14px 20px', textAlign: 'right', fontWeight: 800, fontSize: 14, color: 'var(--primary)' }}>
+                            {money(p.revenue)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
 
@@ -1215,7 +1217,7 @@ export default function AdminView({
           
           {/* Product Modal */}
           {showProductModal && (
-            <div className="mm-block" style={{ width: '100%', maxWidth: 680, padding: 32, maxHeight: '90vh', overflowY: 'auto', animation: 'scaleIn 0.2s ease' }}>
+            <div className="mm-block modal-dialog-responsive" style={{ width: '100%', maxWidth: 680, padding: 24, maxHeight: '90vh', overflowY: 'auto', animation: 'scaleIn 0.2s ease' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>
                   {editingProduct ? `Edit Product: ${editingProduct.name}` : 'Add New Product'}
@@ -1291,7 +1293,7 @@ export default function AdminView({
                         onClick={addVariantRow}
                         style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                       >
-                        <Plus size={14} /> + Naya Variant Jodein
+                        <Plus size={14} /> + Add New Variant
                       </button>
                     </div>
 
@@ -1397,7 +1399,7 @@ export default function AdminView({
 
           {/* Banner Modal */}
           {showBannerModal && (
-            <div className="mm-block" style={{ width: '100%', maxWidth: 500, padding: 32, animation: 'scaleIn 0.2s ease' }}>
+            <div className="mm-block modal-dialog-responsive" style={{ width: '100%', maxWidth: 500, padding: 24, animation: 'scaleIn 0.2s ease' }}>
               <h3 style={{ margin: '0 0 24px 0', fontSize: 24 }}>{editingBanner ? 'Edit Banner' : 'Add New Banner'}</h3>
               <form onSubmit={saveBanner} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
@@ -1422,7 +1424,7 @@ export default function AdminView({
 
           {/* Expense Modal (Store Expense Record) */}
           {showExpenseModal && (
-            <div className="mm-block" style={{ width: '100%', maxWidth: 520, padding: 32, animation: 'scaleIn 0.2s ease' }}>
+            <div className="mm-block modal-dialog-responsive" style={{ width: '100%', maxWidth: 520, padding: 24, animation: 'scaleIn 0.2s ease' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Receipt size={22} color="var(--primary)" /> Record Store Expense
@@ -1760,8 +1762,8 @@ export default function AdminView({
           zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20
         }} onClick={() => setShowStaffModal(false)}>
           <div 
-            className="mm-block" 
-            style={{ width: "100%", maxWidth: 520, padding: 32, borderRadius: 16, background: "white", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
+            className="mm-block modal-dialog-responsive" 
+            style={{ width: "100%", maxWidth: 520, padding: 24, borderRadius: 16, background: "white", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
@@ -1911,8 +1913,8 @@ export default function AdminView({
           zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20
         }} onClick={() => setShowAdminCredModal(false)}>
           <div 
-            className="mm-block" 
-            style={{ width: "100%", maxWidth: 480, padding: 32, borderRadius: 16, background: "white", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
+            className="mm-block modal-dialog-responsive" 
+            style={{ width: "100%", maxWidth: 480, padding: 24, borderRadius: 16, background: "white", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>

@@ -63,7 +63,7 @@ export default function UserDashboard({ user, updateUser, customers, updateCusto
   );
 
   return (
-    <div style={{ maxWidth: 1000, margin: "40px auto", padding: "0 20px", minHeight: "60vh" }}>
+    <div className="page-container" style={{ maxWidth: 1000, margin: "20px auto", minHeight: "60vh" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 30, margin: 0, color: 'var(--text-dark)', fontWeight: 800 }}>My Account</h1>
