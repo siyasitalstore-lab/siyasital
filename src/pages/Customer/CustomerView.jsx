@@ -101,8 +101,26 @@ export default function CustomerView({ products, cart, changeQty, banners, searc
           </button>
         </div>
 
-        {/* Categories Section */}
-        {filteredCategories.length === 0 ? (
+        {/* Empty Catalog or Search Results Section */}
+        {products.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '70px 24px', color: 'var(--text-gray)', background: 'var(--surface)', marginTop: 24, borderRadius: 16, border: '1px solid var(--border)' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px', fontSize: 28 }}>
+              📦
+            </div>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-dark)', margin: '0 0 8px 0' }}>Store Catalog is Ready</h2>
+            <p style={{ maxWidth: 460, margin: '0 auto 24px', fontSize: 15, lineHeight: 1.5 }}>
+              All sample items have been removed. The store owner can now add real grocery items and multi-variants from the Admin Panel.
+            </p>
+            <button 
+              type="button" 
+              onClick={() => setParchiOpen(true)}
+              className="mm-btn-primary" 
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 10, fontSize: 14 }}
+            >
+              <Camera size={16} /> Place Order via Grocery Slip
+            </button>
+          </div>
+        ) : filteredCategories.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-gray)', background: 'var(--surface)', marginTop: 24, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
             <h2 style={{ fontSize: 24, color: 'var(--text-dark)', marginBottom: 8 }}>Sorry, no results found!</h2>
             <p>Please check the spelling or try searching for something else</p>

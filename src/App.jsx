@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
-import { KEYS, DEFAULT_PRODUCTS, DEFAULT_STAFF, DEFAULT_BANNERS, DEFAULT_EXPENSES, DEFAULT_ORDERS, DEFAULT_CUSTOMERS, loadOrSeed, persist } from "./data/store";
+import { KEYS, DEFAULT_PRODUCTS, DEFAULT_STAFF, DEFAULT_BANNERS, DEFAULT_EXPENSES, DEFAULT_ORDERS, DEFAULT_CUSTOMERS, loadOrSeed, persist, getAdminAuth, saveAdminAuth } from "./data/store";
 import { 
   getSupabaseConfig,
   fetchSupabaseProducts, upsertSupabaseProduct,
@@ -28,6 +28,7 @@ export default function App() {
   const [syncError, setSyncError] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('mm-theme') || 'light');
   const [showSupabaseModal, setShowSupabaseModal] = useState(false);
+  const [adminAuth, setAdminAuth] = useState(getAdminAuth());
   
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -119,6 +120,11 @@ export default function App() {
   const updateStaff = async (next) => {
     setStaff(next);
     if (!(await persist(KEYS.staff, next))) setSyncError(true);
+  };
+
+  const updateAdminAuth = (next) => {
+    setAdminAuth(next);
+    saveAdminAuth(next);
   };
 
   const updateBanners = async (next) => {
@@ -218,7 +224,7 @@ export default function App() {
       )}
       
       <Routes>
-        <Route path="/login" element={<Login onLogin={setUser} customers={customers} updateCustomers={updateCustomers} />} />
+        <Route path="/login" element={<Login onLogin={setUser} customers={customers} updateCustomers={updateCustomers} staff={staff} adminAuth={adminAuth} />} />
         
         <Route element={<Layout theme={theme} toggleTheme={toggleTheme} user={user} products={products} onLogout={() => { setUser(null); navigate('/'); }} cartItems={cartItems} cartCount={cartCount} subtotal={subtotal} changeQty={changeQty} onCheckoutClick={handleCheckoutClick} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}>
           {/* Public / Customer Routes */}
@@ -242,7 +248,27 @@ export default function App() {
         {/* Admin Route */}
         <Route path="/admin" element={
           user?.role === 'admin' ? 
-            <AdminView theme={theme} toggleTheme={toggleTheme} customers={customers} updateCustomers={updateCustomers} products={products} updateProducts={updateProducts} staff={staff} updateStaff={updateStaff} orders={orders} updateOrders={updateOrders} banners={banners} updateBanners={updateBanners} expenses={expenses} updateExpenses={updateExpenses} user={user} onLogout={() => { setUser(null); navigate('/'); }} onOpenSupabase={() => setShowSupabaseModal(true)} /> : <Navigate to="/login" />
+            <AdminView 
+              theme={theme} 
+              toggleTheme={toggleTheme} 
+              customers={customers} 
+              updateCustomers={updateCustomers} 
+              products={products} 
+              updateProducts={updateProducts} 
+              staff={staff} 
+              updateStaff={updateStaff} 
+              orders={orders} 
+              updateOrders={updateOrders} 
+              banners={banners} 
+              updateBanners={updateBanners} 
+              expenses={expenses} 
+              updateExpenses={updateExpenses} 
+              adminAuth={adminAuth}
+              updateAdminAuth={updateAdminAuth}
+              user={user} 
+              onLogout={() => { setUser(null); navigate('/'); }} 
+              onOpenSupabase={() => setShowSupabaseModal(true)} 
+            /> : <Navigate to="/login" />
         } />
       </Routes>
 

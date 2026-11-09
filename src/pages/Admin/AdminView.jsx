@@ -4,7 +4,7 @@ import {
   IndianRupee, Clock, ShoppingCart, Image as ImageIcon, User, Search, X, 
   Receipt, TrendingUp, TrendingDown, Wallet, CreditCard, PieChart, 
   ArrowUpRight, CheckCircle, AlertTriangle, Layers, Calendar, Filter, BookOpen, FileText,
-  Database, Server, RefreshCw, CheckCircle2, Shield, Cloud
+  Database, Server, RefreshCw, CheckCircle2, Shield, Cloud, ShieldCheck, Key, Lock, Eye, EyeOff, UserCheck, UserX
 } from "lucide-react";
 import { LOW_STOCK, money, orderTotal, CATEGORIES, EXPENSE_CATEGORIES } from "../../data/store";
 import { isSupabaseConfigured, getSupabaseConfig } from "../../lib/supabase";
@@ -17,6 +17,7 @@ export default function AdminView({
   staff = [], updateStaff, orders = [], updateOrders,
   banners = [], updateBanners, 
   expenses = [], updateExpenses,
+  adminAuth = {}, updateAdminAuth,
   user, onLogout, onOpenSupabase 
 }) {
   const [tab, setTab] = useState("stats");
@@ -30,6 +31,27 @@ export default function AdminView({
   const [showBannerModal, setShowBannerModal] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [showAdminCredModal, setShowAdminCredModal] = useState(false);
+  const [showStaffPasswords, setShowStaffPasswords] = useState({});
+  const [staffError, setStaffError] = useState("");
+
+  const [staffForm, setStaffForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    role: "Manager",
+    active: true
+  });
+
+  const [adminCredForm, setAdminCredForm] = useState({
+    email: adminAuth?.email || "admin@siyasitalstore.com",
+    password: adminAuth?.password || "admin@siyasital123",
+    name: adminAuth?.name || "Master Admin"
+  });
+  const [adminCredMsg, setAdminCredMsg] = useState("");
 
   // Deep Analytics Calculations
   const completedOrders = useMemo(() => orders.filter(o => o.status === 'Completed'), [orders]);
@@ -313,6 +335,117 @@ export default function AdminView({
 
   const deleteBanner = (id) => updateBanners(banners.filter(b => b.id !== id));
   const deleteProduct = (id) => updateProducts(products.filter(p => p.id !== id));
+
+  // Staff & Manager Management
+  const openStaffModal = (member = null) => {
+    setEditingStaff(member);
+    setStaffError("");
+    if (member) {
+      setStaffForm({
+        name: member.name || "",
+        email: member.email || "",
+        phone: member.phone || "",
+        password: member.password || "",
+        role: member.role || "Manager",
+        active: member.active !== false
+      });
+    } else {
+      setStaffForm({
+        name: "",
+        email: "",
+        phone: "",
+        password: "",
+        role: "Manager",
+        active: true
+      });
+    }
+    setShowStaffModal(true);
+  };
+
+  const saveStaffMember = (e) => {
+    e.preventDefault();
+    setStaffError("");
+    const cleanEmail = staffForm.email.trim().toLowerCase();
+    const cleanPass = staffForm.password.trim();
+
+    if (!staffForm.name.trim() || !cleanEmail || !cleanPass) {
+      setStaffError("Name, Email and Password are required.");
+      return;
+    }
+
+    if (cleanPass.length < 6) {
+      setStaffError("Password must be at least 6 characters.");
+      return;
+    }
+
+    // Check duplicate email
+    const duplicate = staff.find(s => (s.email || "").toLowerCase() === cleanEmail && s.id !== editingStaff?.id);
+    if (duplicate || cleanEmail === (adminAuth?.email || "admin@siyasitalstore.com").toLowerCase()) {
+      setStaffError("A manager or admin account with this email already exists.");
+      return;
+    }
+
+    if (editingStaff) {
+      const nextStaff = staff.map(s => s.id === editingStaff.id ? {
+        ...s,
+        name: staffForm.name.trim(),
+        email: cleanEmail,
+        phone: staffForm.phone.trim(),
+        password: cleanPass,
+        role: staffForm.role,
+        active: staffForm.active
+      } : s);
+      updateStaff(nextStaff);
+    } else {
+      const newMember = {
+        id: `m_${Date.now()}`,
+        name: staffForm.name.trim(),
+        email: cleanEmail,
+        phone: staffForm.phone.trim(),
+        password: cleanPass,
+        role: staffForm.role,
+        active: staffForm.active,
+        createdAt: new Date().toLocaleDateString("en-IN")
+      };
+      updateStaff([...staff, newMember]);
+    }
+    setShowStaffModal(false);
+  };
+
+  const deleteStaffMember = (id) => {
+    if (window.confirm("Are you sure you want to remove this manager account? They will no longer be able to log in.")) {
+      updateStaff(staff.filter(s => s.id !== id));
+    }
+  };
+
+  const toggleStaffActive = (member) => {
+    const nextStaff = staff.map(s => s.id === member.id ? { ...s, active: !s.active } : s);
+    updateStaff(nextStaff);
+  };
+
+  const saveAdminCredentials = (e) => {
+    e.preventDefault();
+    if (!adminCredForm.email.trim() || !adminCredForm.password.trim()) {
+      setAdminCredMsg("Email and password cannot be empty.");
+      return;
+    }
+    if (adminCredForm.password.trim().length < 6) {
+      setAdminCredMsg("Password must be at least 6 characters.");
+      return;
+    }
+    if (updateAdminAuth) {
+      updateAdminAuth({
+        email: adminCredForm.email.trim().toLowerCase(),
+        password: adminCredForm.password.trim(),
+        name: adminCredForm.name.trim() || "Master Admin"
+      });
+      setAdminCredMsg("Admin credentials updated successfully!");
+      setTimeout(() => {
+        setShowAdminCredModal(false);
+        setAdminCredMsg("");
+      }, 1500);
+    }
+  };
 
   const sidebarItems = [
     { id: 'stats', label: 'Sales & Analytics', icon: <BarChart3 size={18} /> },
@@ -833,56 +966,227 @@ export default function AdminView({
         </div>
       )}
 
-      {/* 5. STAFF TAB */}
+      {/* 5. STAFF & MANAGER MANAGEMENT TAB */}
       {tab === "staff" && (
-        <div className="mm-block" style={{ padding: 0, overflow: "hidden", animation: 'fadeIn 0.3s ease' }}>
-          <div style={{ padding: 30, borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", background: '#f8fafc' }}>
-            <h3 style={{ margin: 0, fontSize: 20 }}>Staff Directory</h3>
-            <button className="mm-btn-primary" style={{ padding: "10px 20px" }}><Plus size={18}/> Add Staff</button>
+        <div style={{ animation: 'fadeIn 0.3s ease' }}>
+          
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <h2 style={{ fontSize: 28, margin: 0, color: 'var(--text-dark)', fontWeight: 800 }}>Manager & Staff Access</h2>
+                <span style={{ background: '#e0e7ff', color: '#4338ca', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>
+                  {staff.length} Authorized Managers
+                </span>
+              </div>
+              <span style={{ fontSize: 14, color: 'var(--text-gray)' }}>
+                Only Master Admin can create, activate, or revoke store managers. Managers can log in to Shift Analytics, POS Billing, and Orders.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setAdminCredForm({
+                    email: adminAuth?.email || "admin@siyasitalstore.com",
+                    password: adminAuth?.password || "admin@siyasital123",
+                    name: adminAuth?.name || "Master Admin"
+                  });
+                  setAdminCredMsg("");
+                  setShowAdminCredModal(true);
+                }}
+                style={{ 
+                  background: 'white', border: '1px solid var(--border)', 
+                  padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 13, 
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-dark)' 
+                }}
+              >
+                <ShieldCheck size={16} color="var(--primary)" /> Master Admin Settings
+              </button>
+
+              <button 
+                type="button" 
+                className="mm-btn-primary" 
+                onClick={() => openStaffModal(null)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 10 }}
+              >
+                <Plus size={18}/> Create New Manager
+              </button>
+            </div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-              <thead>
-                <tr style={{ background: "white", borderBottom: "2px solid var(--border)", color: "var(--text-gray)", fontSize: 14 }}>
-                  <th style={{ padding: "16px 30px", fontWeight: 600 }}>Name</th>
-                  <th style={{ padding: "16px 30px", fontWeight: 600 }}>Role</th>
-                  <th style={{ padding: "16px 30px", fontWeight: 600 }}>Phone</th>
-                  <th style={{ padding: "16px 30px", fontWeight: 600 }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {staff.map(s => (
-                  <tr key={s.id} style={{ borderBottom: "1px solid var(--border)", background: 'white' }}>
-                    <td style={{ padding: "20px 30px", fontWeight: 700, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{s.name.charAt(0)}</div>
-                      {s.name}
-                    </td>
-                    <td style={{ padding: "20px 30px" }}>
-                      <select 
-                        value={s.role} 
-                        onChange={(e) => {
-                          const nextStaff = staff.map(x => x.id === s.id ? { ...x, role: e.target.value } : x);
-                          updateStaff(nextStaff);
-                        }}
-                        style={{ padding: "6px 12px", borderRadius: 6, fontSize: 13, fontWeight: 700, border: '1px solid var(--border)', background: '#f8fafc', color: 'var(--text-dark)', cursor: 'pointer', outline: 'none' }}
-                      >
-                        <option value="Customer">Customer</option>
-                        <option value="Manager">Manager</option>
-                        <option value="Admin">Admin</option>
-                      </select>
-                    </td>
-                    <td style={{ padding: "20px 30px", fontWeight: 500, color: 'var(--text-gray)' }}>{s.phone}</td>
-                    <td style={{ padding: "20px 30px" }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: s.active ? "#16a34a" : "#ef4444", fontWeight: 600, fontSize: 14 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.active ? '#16a34a' : '#ef4444' }}></div>
-                        {s.active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          {/* Master Admin Card */}
+          <div style={{ 
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', 
+            borderRadius: 16, padding: '24px 28px', color: 'white', marginBottom: 28,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+              <div style={{ 
+                width: 52, height: 52, borderRadius: 14, background: 'var(--primary)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 
+              }}>
+                👑
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{adminAuth?.name || "Master Admin"}</h3>
+                  <span style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>
+                    PRIMARY OWNER
+                  </span>
+                </div>
+                <div style={{ fontSize: 13, color: '#94a3b8', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  <span><strong>Login Email:</strong> {adminAuth?.email || "admin@siyasitalstore.com"}</span>
+                  <span><strong>Access:</strong> Full Store, Financials, Inventory, Managers & Database</span>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              type="button"
+              onClick={() => {
+                setAdminCredForm({
+                  email: adminAuth?.email || "admin@siyasitalstore.com",
+                  password: adminAuth?.password || "admin@siyasital123",
+                  name: adminAuth?.name || "Master Admin"
+                });
+                setAdminCredMsg("");
+                setShowAdminCredModal(true);
+              }}
+              style={{ 
+                background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', 
+                color: 'white', padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, 
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 
+              }}
+            >
+              <Key size={14} /> Change Admin Password
+            </button>
           </div>
+
+          {/* Managers List Table */}
+          <div className="mm-block" style={{ padding: 0, overflow: "hidden", borderRadius: 16 }}>
+            <div style={{ padding: '20px 28px', borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", background: '#f8fafc' }}>
+              <strong style={{ fontSize: 16, color: 'var(--text-dark)' }}>Store Managers Directory</strong>
+              <span style={{ fontSize: 13, color: 'var(--text-gray)' }}>Only accounts listed here can log in to the Manager Portal</span>
+            </div>
+
+            {staff.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-gray)' }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>👔</div>
+                <h3 style={{ fontSize: 18, color: 'var(--text-dark)', margin: '0 0 6px 0' }}>No Managers Added Yet</h3>
+                <p style={{ maxWidth: 440, margin: '0 auto 20px', fontSize: 14 }}>
+                  Currently only the Master Admin has access. Click "Create New Manager" to create an authorized manager account with email and password.
+                </p>
+                <button 
+                  type="button" 
+                  className="mm-btn-primary" 
+                  onClick={() => openStaffModal(null)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 10 }}
+                >
+                  <Plus size={16} /> Create First Manager
+                </button>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ background: "white", borderBottom: "2px solid var(--border)", color: "var(--text-gray)", fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      <th style={{ padding: "16px 28px", fontWeight: 700 }}>Manager</th>
+                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Login Email</th>
+                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Phone</th>
+                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Login Password</th>
+                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Status</th>
+                      <th style={{ padding: "16px 28px", fontWeight: 700, textAlign: "right" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {staff.map(s => {
+                      const isRevealed = Boolean(showStaffPasswords[s.id]);
+                      return (
+                        <tr key={s.id} style={{ borderBottom: "1px solid var(--border)", background: 'white' }}>
+                          <td style={{ padding: "18px 28px", fontWeight: 700, color: 'var(--text-dark)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#f1f5f9', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800 }}>
+                                {s.name.charAt(0)}
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 14 }}>{s.name}</div>
+                                <span style={{ fontSize: 11, background: '#f1f5f9', color: 'var(--text-gray)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                                  {s.role || "Manager"}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: "18px 20px", fontSize: 14, color: 'var(--text-dark)', fontWeight: 600 }}>
+                            {s.email || "No email set"}
+                          </td>
+                          <td style={{ padding: "18px 20px", fontSize: 14, color: 'var(--text-gray)' }}>
+                            {s.phone || "—"}
+                          </td>
+                          <td style={{ padding: "18px 20px" }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f8fafc', padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)' }}>
+                              <span style={{ fontFamily: 'monospace', fontSize: 13, letterSpacing: isRevealed ? 'normal' : 2, fontWeight: 700 }}>
+                                {isRevealed ? (s.password || "••••••••") : "••••••••"}
+                              </span>
+                              <button 
+                                type="button"
+                                onClick={() => setShowStaffPasswords(prev => ({ ...prev, [s.id]: !prev[s.id] }))}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 2, display: 'flex' }}
+                                title={isRevealed ? "Hide Password" : "Show Password"}
+                              >
+                                {isRevealed ? <EyeOff size={14} /> : <Eye size={14} />}
+                              </button>
+                            </div>
+                          </td>
+                          <td style={{ padding: "18px 20px" }}>
+                            <button
+                              type="button"
+                              onClick={() => toggleStaffActive(s)}
+                              style={{ 
+                                display: 'inline-flex', alignItems: 'center', gap: 6, 
+                                background: s.active !== false ? "#f0fdf4" : "#fef2f2",
+                                color: s.active !== false ? "#16a34a" : "#ef4444", 
+                                border: `1px solid ${s.active !== false ? '#bbf7d0' : '#fca5a5'}`,
+                                padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer' 
+                              }}
+                              title="Click to Toggle Active/Inactive"
+                            >
+                              <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.active !== false ? '#16a34a' : '#ef4444' }}></div>
+                              {s.active !== false ? "Active" : "Suspended"}
+                            </button>
+                          </td>
+                          <td style={{ padding: "18px 28px", textAlign: "right" }}>
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                              <button 
+                                type="button" 
+                                className="mm-iconbtn" 
+                                onClick={() => openStaffModal(s)} 
+                                title="Edit Manager & Password" 
+                                style={{ background: '#f1f5f9' }}
+                              >
+                                <Pencil size={15} />
+                              </button>
+                              <button 
+                                type="button" 
+                                className="mm-iconbtn" 
+                                onClick={() => deleteStaffMember(s.id)} 
+                                title="Revoke Manager Access" 
+                                style={{ background: '#fef2f2', color: '#ef4444' }}
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
         </div>
       )}
 
@@ -1445,6 +1749,268 @@ export default function AdminView({
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* CREATE / EDIT MANAGER MODAL */}
+      {showStaffModal && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(4px)",
+          zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20
+        }} onClick={() => setShowStaffModal(false)}>
+          <div 
+            className="mm-block" 
+            style={{ width: "100%", maxWidth: 520, padding: 32, borderRadius: 16, background: "white", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ background: '#e0e7ff', color: '#4338ca', padding: 8, borderRadius: 10 }}>
+                  <Users size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--text-dark)' }}>
+                    {editingStaff ? "Edit Store Manager" : "Create New Store Manager"}
+                  </h3>
+                  <span style={{ fontSize: 12, color: 'var(--text-gray)' }}>
+                    Manager credentials allow logging into POS billing & shift analytics
+                  </span>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setShowStaffModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-gray)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {staffError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
+                {staffError}
+              </div>
+            )}
+
+            <form onSubmit={saveStaffMember} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: 'var(--text-dark)' }}>
+                  Manager Full Name *
+                </label>
+                <input 
+                  type="text" 
+                  className="mm-input" 
+                  placeholder="e.g. Ramesh Kumar" 
+                  value={staffForm.name} 
+                  onChange={e => setStaffForm({ ...staffForm, name: e.target.value })} 
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: 'var(--text-dark)' }}>
+                  Manager Login Email *
+                </label>
+                <input 
+                  type="email" 
+                  className="mm-input" 
+                  placeholder="e.g. manager@siyasitalstore.com" 
+                  value={staffForm.email} 
+                  onChange={e => setStaffForm({ ...staffForm, email: e.target.value })} 
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 14 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: 'var(--text-dark)' }}>
+                    Phone Number
+                  </label>
+                  <input 
+                    type="tel" 
+                    className="mm-input" 
+                    placeholder="9876543210" 
+                    value={staffForm.phone} 
+                    onChange={e => setStaffForm({ ...staffForm, phone: e.target.value })} 
+                  />
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: 'var(--text-dark)' }}>
+                    Assigned Role
+                  </label>
+                  <select 
+                    className="mm-input"
+                    value={staffForm.role}
+                    onChange={e => setStaffForm({ ...staffForm, role: e.target.value })}
+                  >
+                    <option value="Manager">Manager (Full POS & Shift)</option>
+                    <option value="Staff">Counter Staff</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: 'var(--text-dark)' }}>
+                  Manager Login Password *
+                </label>
+                <input 
+                  type="text" 
+                  className="mm-input" 
+                  placeholder="Set login password (min 6 chars)" 
+                  value={staffForm.password} 
+                  onChange={e => setStaffForm({ ...staffForm, password: e.target.value })} 
+                  required
+                />
+                <span style={{ fontSize: 11, color: 'var(--text-gray)', marginTop: 4, display: 'block' }}>
+                  The manager will use this password along with their email to log in to the portal.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                <input 
+                  type="checkbox" 
+                  id="staffActiveCheck"
+                  checked={staffForm.active}
+                  onChange={e => setStaffForm({ ...staffForm, active: e.target.checked })}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <label htmlFor="staffActiveCheck" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', cursor: 'pointer' }}>
+                  Account Active (Uncheck to temporarily suspend login access)
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                <button 
+                  type="button" 
+                  className="mm-btn" 
+                  onClick={() => setShowStaffModal(false)} 
+                  style={{ flex: 1, background: '#f1f5f9', color: 'var(--text-dark)' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="mm-btn-primary" 
+                  style={{ flex: 1 }}
+                >
+                  {editingStaff ? "Update Manager" : "Create Manager Account"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MASTER ADMIN CREDENTIALS MODAL */}
+      {showAdminCredModal && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(4px)",
+          zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20
+        }} onClick={() => setShowAdminCredModal(false)}>
+          <div 
+            className="mm-block" 
+            style={{ width: "100%", maxWidth: 480, padding: 32, borderRadius: 16, background: "white", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ background: '#fef3c7', color: '#d97706', padding: 8, borderRadius: 10 }}>
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--text-dark)' }}>
+                    Master Admin Credentials
+                  </h3>
+                  <span style={{ fontSize: 12, color: 'var(--text-gray)' }}>
+                    Update your primary store owner login credentials
+                  </span>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setShowAdminCredModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-gray)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {adminCredMsg && (
+              <div style={{ 
+                background: adminCredMsg.includes("success") ? '#f0fdf4' : '#fef2f2', 
+                border: `1px solid ${adminCredMsg.includes("success") ? '#bbf7d0' : '#fecaca'}`,
+                color: adminCredMsg.includes("success") ? '#16a34a' : '#b91c1c', 
+                padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 
+              }}>
+                {adminCredMsg}
+              </div>
+            )}
+
+            <form onSubmit={saveAdminCredentials} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: 'var(--text-dark)' }}>
+                  Admin Owner Name
+                </label>
+                <input 
+                  type="text" 
+                  className="mm-input" 
+                  value={adminCredForm.name} 
+                  onChange={e => setAdminCredForm({ ...adminCredForm, name: e.target.value })} 
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: 'var(--text-dark)' }}>
+                  Master Admin Login Email *
+                </label>
+                <input 
+                  type="email" 
+                  className="mm-input" 
+                  value={adminCredForm.email} 
+                  onChange={e => setAdminCredForm({ ...adminCredForm, email: e.target.value })} 
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: 'var(--text-dark)' }}>
+                  Master Admin Password *
+                </label>
+                <input 
+                  type="text" 
+                  className="mm-input" 
+                  value={adminCredForm.password} 
+                  onChange={e => setAdminCredForm({ ...adminCredForm, password: e.target.value })} 
+                  required
+                />
+                <span style={{ fontSize: 11, color: 'var(--text-gray)', marginTop: 4, display: 'block' }}>
+                  Minimum 6 characters. Remember to keep this password secure.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                <button 
+                  type="button" 
+                  className="mm-btn" 
+                  onClick={() => setShowAdminCredModal(false)} 
+                  style={{ flex: 1, background: '#f1f5f9', color: 'var(--text-dark)' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="mm-btn-primary" 
+                  style={{ flex: 1 }}
+                >
+                  Update Credentials
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
