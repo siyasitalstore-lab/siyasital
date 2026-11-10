@@ -4,10 +4,9 @@ import {
   IndianRupee, Clock, ShoppingCart, Image as ImageIcon, User, Search, X, 
   Receipt, TrendingUp, TrendingDown, Wallet, CreditCard, PieChart, 
   ArrowUpRight, CheckCircle, AlertTriangle, Layers, Calendar, Filter, BookOpen, FileText,
-  Database, Server, RefreshCw, CheckCircle2, Shield, Cloud, ShieldCheck, Key, Lock, Eye, EyeOff, UserCheck, UserX
+  ShieldCheck, Key, Lock, Eye, EyeOff, UserCheck, UserX
 } from "lucide-react";
 import { LOW_STOCK, money, orderTotal, CATEGORIES, EXPENSE_CATEGORIES } from "../../data/store";
-import { isSupabaseConfigured, getSupabaseConfig } from "../../lib/supabase";
 import DashboardLayout from "../../components/DashboardLayout";
 import DailyBillsView from "../../components/DailyBillsView";
 import CustomerKhataView from "../../components/CustomerKhataView";
@@ -18,7 +17,7 @@ export default function AdminView({
   banners = [], updateBanners, 
   expenses = [], updateExpenses,
   adminAuth = {}, updateAdminAuth,
-  user, onLogout, onOpenSupabase 
+  user, onLogout 
 }) {
   const [tab, setTab] = useState("stats");
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
@@ -455,7 +454,6 @@ export default function AdminView({
     { id: 'products', label: 'Inventory Management', icon: <Package size={18} /> },
     { id: 'banners', label: 'Store Banners', icon: <ImageIcon size={18} /> },
     { id: 'staff', label: 'Staff & Team', icon: <Users size={18} /> },
-    { id: 'database', label: 'Supabase Cloud DB', icon: <Database size={18} /> },
   ];
 
   return (
@@ -1040,7 +1038,7 @@ export default function AdminView({
                 </div>
                 <div style={{ fontSize: 13, color: '#94a3b8', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                   <span><strong>Login Email:</strong> {adminAuth?.email || "admin@siyasitalstore.com"}</span>
-                  <span><strong>Access:</strong> Full Store, Financials, Inventory, Managers & Database</span>
+                  <span><strong>Access:</strong> Full Store, Financials, Inventory & Managers</span>
                 </div>
               </div>
             </div>
@@ -1515,241 +1513,6 @@ export default function AdminView({
               </form>
             </div>
           )}
-
-        </div>
-      )}
-
-      {/* 8. SUPABASE CLOUD DATABASE TAB */}
-      {tab === "database" && (
-        <div style={{ animation: 'fadeIn 0.3s ease' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <h2 style={{ fontSize: 28, margin: 0, color: 'var(--text-dark)', fontWeight: 800 }}>Supabase Cloud Database</h2>
-                <span style={{ 
-                  background: isSupabaseConfigured() ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)', 
-                  color: isSupabaseConfigured() ? '#059669' : '#d97706',
-                  padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700,
-                  display: 'inline-flex', alignItems: 'center', gap: 6
-                }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: isSupabaseConfigured() ? '#10b981' : '#f59e0b' }} />
-                  {isSupabaseConfigured() ? 'Cloud Database Connected' : 'Running on Offline Local Storage'}
-                </span>
-              </div>
-              <span style={{ fontSize: 14, color: 'var(--text-gray)' }}>
-                Connect PostgreSQL on Supabase to sync real grocery inventory, customer dues, orders, and store expenses permanently.
-              </span>
-            </div>
-
-            <button 
-              type="button" 
-              className="mm-btn-primary" 
-              onClick={onOpenSupabase}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 10 }}
-            >
-              <Database size={16} /> Configure / Sync Database
-            </button>
-          </div>
-
-          {/* Connection Status Card */}
-          <div style={{ 
-            background: isSupabaseConfigured() ? '#f0fdf4' : '#fffbeb', 
-            border: `1px solid ${isSupabaseConfigured() ? '#bbf7d0' : '#fef3c7'}`,
-            borderRadius: 16, padding: 24, marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16
-          }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-              <div style={{ 
-                width: 48, height: 48, borderRadius: 12, 
-                background: isSupabaseConfigured() ? '#dcfce7' : '#fef3c7',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: isSupabaseConfigured() ? '#16a34a' : '#d97706'
-              }}>
-                <Server size={24} />
-              </div>
-              <div>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: 16, fontWeight: 700, color: 'var(--text-dark)' }}>
-                  {isSupabaseConfigured() ? 'Connected to Cloud PostgreSQL' : 'Local Fallback Storage Active'}
-                </h3>
-                <div style={{ fontSize: 13, color: 'var(--text-gray)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div><strong>Supabase Project URL:</strong> {getSupabaseConfig().url || "None (Add in .env or via Modal)"}</div>
-                  <div><strong>Anon Key:</strong> {getSupabaseConfig().anonKey ? "••••••••" + getSupabaseConfig().anonKey.slice(-8) : "None"}</div>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button 
-                type="button"
-                onClick={onOpenSupabase}
-                style={{ 
-                  background: 'white', border: '1px solid var(--border)', 
-                  padding: '9px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, 
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-dark)' 
-                }}
-              >
-                <RefreshCw size={14} color="var(--primary)" /> Database Sync Modal
-              </button>
-              <a 
-                href="https://supabase.com/dashboard" 
-                target="_blank" 
-                rel="noreferrer"
-                style={{ 
-                  background: '#0f172a', color: 'white', textDecoration: 'none',
-                  padding: '9px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, 
-                  display: 'flex', alignItems: 'center', gap: 6, borderRadius: 10
-                }}
-              >
-                <Cloud size={14} /> Open Supabase Console
-              </a>
-            </div>
-          </div>
-
-          {/* Database Tables Overview */}
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', marginBottom: 16 }}>
-            Cloud Database Tables & Real Records
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, marginBottom: 32 }}>
-            
-            {/* Products Table */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ background: '#ecfdf5', color: '#059669', padding: 8, borderRadius: 10 }}>
-                    <Package size={18} />
-                  </div>
-                  <strong style={{ fontSize: 15, color: 'var(--text-dark)' }}>public.products</strong>
-                </div>
-                <span style={{ fontSize: 20, fontWeight: 800, color: '#059669' }}>{products.length}</span>
-              </div>
-              <p style={{ fontSize: 12, color: 'var(--text-gray)', margin: '0 0 12px 0' }}>
-                Real grocery products with multi-variant options (5 Star, Atta, Oil, Dairy, Spices, Snacks).
-              </p>
-              <div style={{ fontSize: 11, color: 'var(--text-dark)', background: '#f8fafc', padding: '6px 10px', borderRadius: 6, fontFamily: 'monospace' }}>
-                Columns: id, name, category, price, stock, unit, variants (jsonb)
-              </div>
-            </div>
-
-            {/* Orders Table */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ background: '#eff6ff', color: '#2563eb', padding: 8, borderRadius: 10 }}>
-                    <Receipt size={18} />
-                  </div>
-                  <strong style={{ fontSize: 15, color: 'var(--text-dark)' }}>public.orders</strong>
-                </div>
-                <span style={{ fontSize: 20, fontWeight: 800, color: '#2563eb' }}>{orders.length}</span>
-              </div>
-              <p style={{ fontSize: 12, color: 'var(--text-gray)', margin: '0 0 12px 0' }}>
-                Counter POS bills, store pickup orders, paper-parchi slips, and itemized receipts.
-              </p>
-              <div style={{ fontSize: 11, color: 'var(--text-dark)', background: '#f8fafc', padding: '6px 10px', borderRadius: 6, fontFamily: 'monospace' }}>
-                Columns: id, customer, phone, payment, total, status, items (jsonb)
-              </div>
-            </div>
-
-            {/* Customers Table */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ background: '#fef3c7', color: '#d97706', padding: 8, borderRadius: 10 }}>
-                    <BookOpen size={18} />
-                  </div>
-                  <strong style={{ fontSize: 15, color: 'var(--text-dark)' }}>public.customers</strong>
-                </div>
-                <span style={{ fontSize: 20, fontWeight: 800, color: '#d97706' }}>{customers.length}</span>
-              </div>
-              <p style={{ fontSize: 12, color: 'var(--text-gray)', margin: '0 0 12px 0' }}>
-                Customer profiles, khata credit limits, outstanding balances, and payment records.
-              </p>
-              <div style={{ fontSize: 11, color: 'var(--text-dark)', background: '#f8fafc', padding: '6px 10px', borderRadius: 6, fontFamily: 'monospace' }}>
-                Columns: id, name, phone, address, khata_limit, payment_history (jsonb)
-              </div>
-            </div>
-
-            {/* Expenses Table */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ background: '#fdf2f8', color: '#db2777', padding: 8, borderRadius: 10 }}>
-                    <FileText size={18} />
-                  </div>
-                  <strong style={{ fontSize: 15, color: 'var(--text-dark)' }}>public.expenses</strong>
-                </div>
-                <span style={{ fontSize: 20, fontWeight: 800, color: '#db2777' }}>{expenses.length}</span>
-              </div>
-              <p style={{ fontSize: 12, color: 'var(--text-gray)', margin: '0 0 12px 0' }}>
-                Shop utility bills, wholesale inventory restock, staff wages, and packaging costs.
-              </p>
-              <div style={{ fontSize: 11, color: 'var(--text-dark)', background: '#f8fafc', padding: '6px 10px', borderRadius: 6, fontFamily: 'monospace' }}>
-                Columns: id, title, category, amount, date, payment_method, notes
-              </div>
-            </div>
-
-          </div>
-
-          {/* Quick Setup Instructions */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 28 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 14px 0', color: 'var(--text-dark)' }}>
-              How to Connect Your Supabase Cloud Project in 3 Steps
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
-                  1
-                </div>
-                <div>
-                  <strong style={{ display: 'block', fontSize: 15, color: 'var(--text-dark)', marginBottom: 4 }}>
-                    Run the SQL Schema in Supabase SQL Editor
-                  </strong>
-                  <span style={{ fontSize: 13, color: 'var(--text-gray)', lineHeight: 1.5 }}>
-                    Open your project at <strong>supabase.com</strong>, click on <strong>SQL Editor</strong> on the left sidebar, paste the contents of <code>supabase-schema.sql</code>, and click <strong>Run</strong>. This creates all 6 tables and sets up Row Level Security.
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
-                  2
-                </div>
-                <div>
-                  <strong style={{ display: 'block', fontSize: 15, color: 'var(--text-dark)', marginBottom: 4 }}>
-                    Paste your Project URL & Anon Public Key
-                  </strong>
-                  <span style={{ fontSize: 13, color: 'var(--text-gray)', lineHeight: 1.5 }}>
-                    In Supabase, go to <strong>Project Settings → API</strong>. Copy the <strong>Project URL</strong> and <strong>Project API key (anon/public)</strong>. Click the <strong>Configure / Sync Database</strong> button on this page and paste them in.
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
-                  3
-                </div>
-                <div>
-                  <strong style={{ display: 'block', fontSize: 15, color: 'var(--text-dark)', marginBottom: 4 }}>
-                    Click "Push Real Grocery Catalog to Supabase"
-                  </strong>
-                  <span style={{ fontSize: 13, color: 'var(--text-gray)', lineHeight: 1.5 }}>
-                    Once connected, click <strong>"Push Real Grocery Catalog to Supabase"</strong> in the modal. All 30+ authentic Indian grocery products (5 Star, Atta, Ghee, Spices, Dairy, Biscuits) will be populated directly into your cloud database.
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)', display: 'flex', gap: 12 }}>
-              <button 
-                type="button" 
-                className="mm-btn-primary" 
-                onClick={onOpenSupabase}
-                style={{ padding: '10px 20px', borderRadius: 10, fontSize: 14 }}
-              >
-                Open Database Sync Manager
-              </button>
-            </div>
-          </div>
 
         </div>
       )}

@@ -267,7 +267,6 @@ export default function App() {
               updateAdminAuth={updateAdminAuth}
               user={user} 
               onLogout={() => { setUser(null); navigate('/'); }} 
-              onOpenSupabase={() => setShowSupabaseModal(true)} 
             /> : <Navigate to="/login" />
         } />
       </Routes>
