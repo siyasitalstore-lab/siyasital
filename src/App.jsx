@@ -7,7 +7,8 @@ import {
   fetchSupabaseProducts, upsertSupabaseProduct,
   fetchSupabaseOrders, upsertSupabaseOrder,
   fetchSupabaseCustomers, upsertSupabaseCustomer,
-  fetchSupabaseExpenses, upsertSupabaseExpense
+  fetchSupabaseExpenses, upsertSupabaseExpense,
+  fetchSupabaseStaff, upsertSupabaseStaff, deleteSupabaseStaff
 } from "./lib/supabase";
 import SupabaseSyncModal from "./components/SupabaseSyncModal";
 
@@ -23,7 +24,14 @@ import Feedback from "./pages/Info/Feedback";
 import ContactSupport from "./pages/Info/ContactSupport";
 
 export default function App() {
-  const [user, setUser] = useState(null); // null = guest
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('siyasital-active-user-v3');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
   const [syncError, setSyncError] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('mm-theme') || 'light');
@@ -41,6 +49,21 @@ export default function App() {
 
   const navigate = useNavigate();
 
+  const handleLogin = (u) => {
+    setUser(u);
+    try {
+      localStorage.setItem('siyasital-active-user-v3', JSON.stringify(u));
+    } catch {}
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    try {
+      localStorage.removeItem('siyasital-active-user-v3');
+    } catch {}
+    navigate('/');
+  };
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     const { isConfigured } = getSupabaseConfig();
@@ -49,14 +72,16 @@ export default function App() {
     let sbOrders = null;
     let sbCustomers = null;
     let sbExpenses = null;
+    let sbStaff = null;
 
     if (isConfigured) {
       try {
-        [sbProducts, sbOrders, sbCustomers, sbExpenses] = await Promise.all([
+        [sbProducts, sbOrders, sbCustomers, sbExpenses, sbStaff] = await Promise.all([
           fetchSupabaseProducts(),
           fetchSupabaseOrders(),
           fetchSupabaseCustomers(),
-          fetchSupabaseExpenses()
+          fetchSupabaseExpenses(),
+          fetchSupabaseStaff()
         ]);
       } catch (err) {
         console.warn("Supabase fetch failed, falling back to local store:", err);
@@ -80,7 +105,21 @@ export default function App() {
       ? sbExpenses 
       : await loadOrSeed(KEYS.expenses, DEFAULT_EXPENSES);
 
-    const finalStaff = await loadOrSeed(KEYS.staff, DEFAULT_STAFF);
+    let finalStaff = await loadOrSeed(KEYS.staff, DEFAULT_STAFF);
+    if (sbStaff !== null) {
+      const adminRow = sbStaff.find(s => s.id === 'admin_master' || (s.role || '').toLowerCase() === 'admin');
+      if (adminRow && adminRow.email && adminRow.password) {
+        const syncedAdmin = {
+          email: adminRow.email,
+          password: adminRow.password,
+          name: adminRow.name || "Master Admin"
+        };
+        setAdminAuth(syncedAdmin);
+        saveAdminAuth(syncedAdmin);
+      }
+      finalStaff = sbStaff.filter(s => s.id !== 'admin_master' && (s.role || '').toLowerCase() !== 'admin');
+    }
+
     const finalBanners = await loadOrSeed(KEYS.banners, DEFAULT_BANNERS);
 
     setProducts(finalProducts);
@@ -118,13 +157,29 @@ export default function App() {
   };
 
   const updateStaff = async (next) => {
+    const removed = staff.filter(old => !next.some(n => n.id === old.id));
     setStaff(next);
     if (!(await persist(KEYS.staff, next))) setSyncError(true);
+    if (getSupabaseConfig().isConfigured) {
+      removed.forEach(r => deleteSupabaseStaff(r.id).catch(console.error));
+      next.forEach(s => upsertSupabaseStaff(s).catch(console.error));
+    }
   };
 
   const updateAdminAuth = (next) => {
     setAdminAuth(next);
     saveAdminAuth(next);
+    if (getSupabaseConfig().isConfigured) {
+      upsertSupabaseStaff({
+        id: 'admin_master',
+        name: next.name || "Master Admin",
+        email: next.email,
+        password: next.password,
+        role: 'admin',
+        phone: "",
+        active: true
+      }).catch(console.error);
+    }
   };
 
   const updateBanners = async (next) => {
@@ -224,13 +279,13 @@ export default function App() {
       )}
       
       <Routes>
-        <Route path="/login" element={<Login onLogin={setUser} customers={customers} updateCustomers={updateCustomers} staff={staff} adminAuth={adminAuth} />} />
+        <Route path="/login" element={<Login user={user} onLogin={handleLogin} customers={customers} updateCustomers={updateCustomers} staff={staff} adminAuth={adminAuth} />} />
         
-        <Route element={<Layout theme={theme} toggleTheme={toggleTheme} user={user} products={products} onLogout={() => { setUser(null); navigate('/'); }} cartItems={cartItems} cartCount={cartCount} subtotal={subtotal} changeQty={changeQty} onCheckoutClick={handleCheckoutClick} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}>
+        <Route element={<Layout theme={theme} toggleTheme={toggleTheme} user={user} products={products} onLogout={handleLogout} cartItems={cartItems} cartCount={cartCount} subtotal={subtotal} changeQty={changeQty} onCheckoutClick={handleCheckoutClick} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}>
           {/* Public / Customer Routes */}
           <Route path="/" element={<CustomerView products={products} cart={cart} changeQty={changeQty} banners={banners} searchQuery={searchQuery} user={user} onParchiOrder={async (newOrder) => await updateOrders([newOrder, ...orders])} />} />
           <Route path="/checkout" element={<Checkout cartItems={cartItems} subtotal={subtotal} products={products} updateProducts={updateProducts} orders={orders} updateOrders={updateOrders} setCart={setCart} user={user} />} />
-          <Route path="/dashboard" element={<UserDashboard user={user || { name: "Guest User", phone: "" }} updateUser={setUser} customers={customers} updateCustomers={updateCustomers} orders={user ? orders.filter(o => o.customer === user.name || o.customerEmail === user.email || (user.phone && o.phone === user.phone)) : orders} />} />
+          <Route path="/dashboard" element={<UserDashboard user={user || { name: "Guest User", phone: "" }} updateUser={handleLogin} customers={customers} updateCustomers={updateCustomers} orders={user ? orders.filter(o => o.customer === user.name || o.customerEmail === user.email || (user.phone && o.phone === user.phone)) : orders} />} />
           
           {/* Info Routes */}
           <Route path="/policy/:policyId" element={<PolicyPage />} />
@@ -242,7 +297,7 @@ export default function App() {
         {/* Manager Route */}
         <Route path="/manager" element={
           user?.role === 'manager' || user?.role === 'admin' ? 
-            <ManagerView theme={theme} toggleTheme={toggleTheme} customers={customers} updateCustomers={updateCustomers} orders={orders} updateOrders={updateOrders} products={products} updateProducts={updateProducts} expenses={expenses} updateExpenses={updateExpenses} user={user} onLogout={() => { setUser(null); navigate('/'); }} /> : <Navigate to="/login" />
+            <ManagerView theme={theme} toggleTheme={toggleTheme} customers={customers} updateCustomers={updateCustomers} orders={orders} updateOrders={updateOrders} products={products} updateProducts={updateProducts} expenses={expenses} updateExpenses={updateExpenses} user={user} onLogout={handleLogout} /> : <Navigate to="/login" />
         } />
 
         {/* Admin Route */}
@@ -266,7 +321,7 @@ export default function App() {
               adminAuth={adminAuth}
               updateAdminAuth={updateAdminAuth}
               user={user} 
-              onLogout={() => { setUser(null); navigate('/'); }} 
+              onLogout={handleLogout} 
             /> : <Navigate to="/login" />
         } />
       </Routes>

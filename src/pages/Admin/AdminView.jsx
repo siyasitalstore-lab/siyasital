@@ -12,6 +12,7 @@ import DailyBillsView from "../../components/DailyBillsView";
 import CustomerKhataView from "../../components/CustomerKhataView";
 
 export default function AdminView({ 
+  theme, toggleTheme,
   customers = [], updateCustomers, products = [], updateProducts, 
   staff = [], updateStaff, orders = [], updateOrders,
   banners = [], updateBanners, 
@@ -457,14 +458,14 @@ export default function AdminView({
   ];
 
   return (
-    <DashboardLayout user={user} onLogout={onLogout} title="Admin Portal" sidebarItems={sidebarItems} activeTab={tab} onTabChange={setTab}>
+    <DashboardLayout theme={theme} toggleTheme={toggleTheme} user={user} onLogout={onLogout} title="Admin Portal" sidebarItems={sidebarItems} activeTab={tab} onTabChange={setTab}>
       <div className="dashboard-content-pad" style={{ maxWidth: 1240, margin: '0 auto' }}>
       
       {/* 1. SALES & ANALYTICS TAB */}
       {tab === "stats" && (
         <div style={{ animation: 'fadeIn 0.3s ease' }}>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 14 }}>
             <div>
               <h2 style={{ fontSize: 28, margin: '0 0 6px 0', color: 'var(--text-dark)', fontWeight: 800 }}>Store Financials & Analytics</h2>
               <span style={{ fontSize: 14, color: 'var(--text-gray)' }}>Complete sales report, revenue, expenses and net profit overview</span>
@@ -537,7 +538,7 @@ export default function AdminView({
           </div>
 
           {/* Middle Row: Payment Mode Breakdown & Category Performance */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, marginBottom: 24 }}>
             
             {/* Payment Mode Analytics */}
             <div className="mm-block" style={{ padding: 24, margin: 0 }}>
@@ -625,7 +626,7 @@ export default function AdminView({
           </div>
 
           {/* Bottom Row: Top Selling Products Leaderboard & Inventory Alert */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
             
             {/* Top Selling Products */}
             <div className="mm-block" style={{ padding: 0, overflow: 'hidden', margin: 0 }}>

@@ -111,9 +111,9 @@ export default function Layout({
             {!user ? (
               <Link to="/login"><button className="fk-login-btn">Log In</button></Link>
             ) : (
-              <Link to="/dashboard" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+              <Link to={user.role === 'admin' ? '/admin' : user.role === 'manager' ? '/manager' : '/dashboard'} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
-                  {user.name.charAt(0)}
+                  {user.name?.charAt(0) || 'U'}
                 </div>
                 {user.name}
               </Link>
@@ -191,9 +191,9 @@ export default function Layout({
                 <button className="fk-login-btn" style={{ padding: '6px 14px', fontSize: 13 }}>Login</button>
               </Link>
             ) : (
-              <Link to="/dashboard" style={{ textDecoration: 'none' }}>
+              <Link to={user.role === 'admin' ? '/admin' : user.role === 'manager' ? '/manager' : '/dashboard'} style={{ textDecoration: 'none' }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
-                  {user.name.charAt(0)}
+                  {user.name?.charAt(0) || 'U'}
                 </div>
               </Link>
             )}

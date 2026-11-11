@@ -14,8 +14,9 @@ import CustomerKhataView from "../../components/CustomerKhataView";
 import StandardBillModal from "../../components/StandardBillModal";
 
 export default function ManagerView({ 
+  theme, toggleTheme,
   customers = [], updateCustomers, orders = [], updateOrders, 
-  products, updateProducts, user, onLogout, expenses = [], onOpenSupabase 
+  products, updateProducts, user, onLogout, expenses = [] 
 }) {
   const [activeTab, setActiveTab] = useState("orders-active");
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
@@ -331,7 +332,7 @@ export default function ManagerView({
   ];
 
   return (
-    <DashboardLayout user={user} onLogout={onLogout} title="Manager" sidebarItems={sidebarItems} activeTab={activeTab} onTabChange={setActiveTab}>
+    <DashboardLayout theme={theme} toggleTheme={toggleTheme} user={user} onLogout={onLogout} title="Manager" sidebarItems={sidebarItems} activeTab={activeTab} onTabChange={setActiveTab}>
       <div className="dashboard-content-pad" style={{ maxWidth: 1200, margin: '0 auto' }}>
         
         {activeTab === "analytics" && (

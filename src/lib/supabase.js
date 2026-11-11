@@ -345,7 +345,72 @@ export async function deleteSupabaseExpense(id) {
   }
 }
 
-// 5. BULK SYNC / SEED REAL DATA TO SUPABASE
+// 5. STAFF & ADMIN CREDENTIALS
+export async function fetchSupabaseStaff() {
+  const client = supabase();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client
+      .from("staff")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return (data || []).map(s => ({
+      id: s.id,
+      name: s.name,
+      email: s.email || "",
+      password: s.password || "",
+      role: s.role || "Manager",
+      phone: s.phone || "",
+      active: s.active !== false
+    }));
+  } catch (err) {
+    console.warn("fetchSupabaseStaff error:", err.message);
+    return null;
+  }
+}
+
+export async function upsertSupabaseStaff(member) {
+  const client = supabase();
+  if (!client) return false;
+
+  try {
+    const payload = {
+      id: member.id,
+      name: member.name,
+      email: member.email || "",
+      password: member.password || "",
+      role: member.role || "Manager",
+      phone: member.phone || "",
+      active: member.active !== false
+    };
+
+    const { error } = await client.from("staff").upsert(payload, { onConflict: "id" });
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error("upsertSupabaseStaff error:", err.message);
+    return false;
+  }
+}
+
+export async function deleteSupabaseStaff(id) {
+  const client = supabase();
+  if (!client) return false;
+
+  try {
+    const { error } = await client.from("staff").delete().eq("id", id);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error("deleteSupabaseStaff error:", err.message);
+    return false;
+  }
+}
+
+// 6. BULK SYNC / SEED REAL DATA TO SUPABASE
 export async function seedRealDataToSupabase(realProducts, realBanners, realStaff) {
   const client = supabase();
   if (!client) {

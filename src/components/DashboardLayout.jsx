@@ -197,7 +197,8 @@ export default function DashboardLayout({
             flexDirection: 'column',
             transform: mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)',
             transition: 'transform 0.25s ease-in-out',
-            boxShadow: '4px 0 24px rgba(0,0,0,0.3)'
+            pointerEvents: mobileMenuOpen ? 'auto' : 'none',
+            boxShadow: mobileMenuOpen ? '4px 0 24px rgba(0,0,0,0.3)' : 'none'
           }}
         >
           {/* Drawer Header */}
