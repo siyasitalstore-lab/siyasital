@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { 
   Store, Printer, MessageSquare, X, CheckCircle, 
-  Clock, Phone, User, QrCode, FileText, Check, ShieldCheck 
+  Clock, Phone, User, QrCode, FileText, Check, ShieldCheck,
+  Camera, Download, Share2, Loader2
 } from "lucide-react";
+import { toPng, toBlob } from "html-to-image";
 import { money, orderTotal, STORE_CONFIG } from "../data/store";
 
 function numberToWordsIN(num) {
@@ -31,12 +33,20 @@ function numberToWordsIN(num) {
 export default function StandardBillModal({ order, onClose }) {
   if (!order) return null;
 
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [statusMsg, setStatusMsg] = useState("");
+
   const total = order.total || orderTotal(order);
   const totalItemsCount = (order.items || []).length;
   const totalUnitsCount = (order.items || []).reduce((s, i) => s + (i.qty || 1), 0);
   const isKhata = (order.payment || "").toLowerCase() === "khata";
   const isUpi = (order.payment || "").toLowerCase() === "upi";
   const isCash = !isKhata && !isUpi;
+
+  const showToast = (msg) => {
+    setStatusMsg(msg);
+    setTimeout(() => setStatusMsg(""), 3500);
+  };
 
   const handlePrint = () => {
     window.print();
@@ -73,6 +83,75 @@ export default function StandardBillModal({ order, onClose }) {
     }
   };
 
+  const handleDownloadPhoto = async () => {
+    const node = document.getElementById("printable-bill");
+    if (!node) return;
+    try {
+      setIsGenerating(true);
+      const dataUrl = await toPng(node, {
+        quality: 0.98,
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+        cacheBust: true,
+      });
+      const fileName = `SiyasitalStore-Bill-${order.id}-${(order.customer || "customer").replace(/[^a-zA-Z0-9]/g, "_")}.png`;
+      const link = document.createElement("a");
+      link.download = fileName;
+      link.href = dataUrl;
+      link.click();
+      showToast("✅ Bill Photo Downloaded!");
+    } catch (err) {
+      console.error("Error downloading bill photo:", err);
+      alert("Bill photo generate karne me samasya aayi. Aap 'Print Bill' se save kar sakte hain.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSharePhoto = async () => {
+    const node = document.getElementById("printable-bill");
+    if (!node) return;
+    try {
+      setIsGenerating(true);
+      const blob = await toBlob(node, {
+        quality: 0.98,
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+        cacheBust: true,
+      });
+      if (!blob) throw new Error("Could not create image blob");
+
+      const fileName = `SiyasitalStore-Bill-${order.id}.png`;
+      const file = new File([blob], fileName, { type: "image/png" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Bill #${order.id} - ${STORE_CONFIG.name}`,
+          text: `🧾 Official Bill #${order.id} from ${STORE_CONFIG.name} (${money(total)})`
+        });
+        showToast("✅ Bill Photo Shared!");
+      } else {
+        // Fallback: download photo & open WhatsApp with text
+        const link = document.createElement("a");
+        link.download = fileName;
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+
+        handleWhatsAppShare();
+        showToast("📸 Photo Download ho gayi! WhatsApp me photo attach karein.");
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        console.error("Error sharing bill photo:", err);
+        handleWhatsAppShare();
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div 
       className="standard-bill-overlay"
@@ -92,56 +171,88 @@ export default function StandardBillModal({ order, onClose }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Toast status alert */}
+        {statusMsg && (
+          <div 
+            className="no-print"
+            style={{ 
+              position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)",
+              background: "#0f172a", color: "white", padding: "8px 18px", borderRadius: 20,
+              fontSize: 12, fontWeight: 700, zIndex: 100, boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
+              display: "flex", alignItems: "center", gap: 6, animation: "fadeIn 0.2s ease"
+            }}
+          >
+            <CheckCircle size={15} color="#4ade80" /> {statusMsg}
+          </div>
+        )}
+
         {/* Screen Action Bar (Hidden during Print) */}
         <div 
           className="no-print"
           style={{ 
             display: "flex", justifyContent: "space-between", alignItems: "center", 
-            padding: "14px 24px", background: "#f8fafc", borderBottom: "1px solid var(--border)" 
+            padding: "12px 20px", background: "#f8fafc", borderBottom: "1px solid var(--border)",
+            flexWrap: "wrap", gap: 10
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-gray)", textTransform: "uppercase", letterSpacing: 0.5 }}>
-              Standard Store Receipt
+              Store Receipt
             </span>
             <span style={{ background: "#dcfce7", color: "#166534", padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 800 }}>
               Official Bill
             </span>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={handleDownloadPhoto}
+              disabled={isGenerating}
+              title="Download receipt as clear image / photo"
+              style={{
+                background: "#ecfdf5", border: "1px solid #a7f3d0", padding: "7px 12px",
+                borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: isGenerating ? "wait" : "pointer",
+                display: "flex", alignItems: "center", gap: 6, color: "#065f46"
+              }}
+            >
+              {isGenerating ? <Loader2 size={14} className="spin" /> : <Camera size={14} />}
+              Photo Download
+            </button>
             <button
               type="button"
               onClick={handlePrint}
               style={{
-                background: "white", border: "1px solid var(--border)", padding: "7px 14px",
-                borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                background: "white", border: "1px solid var(--border)", padding: "7px 12px",
+                borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
                 display: "flex", alignItems: "center", gap: 6, color: "var(--text-dark)"
               }}
             >
-              <Printer size={15} /> Print Bill
+              <Printer size={14} /> Print Bill
             </button>
             <button
               type="button"
-              onClick={handleWhatsAppShare}
+              onClick={handleSharePhoto}
+              disabled={isGenerating}
+              title="Share photo / send on WhatsApp"
               style={{
-                background: "#25d366", border: "none", color: "white", padding: "7px 14px",
-                borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                background: "#25d366", border: "none", color: "white", padding: "7px 12px",
+                borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: isGenerating ? "wait" : "pointer",
                 display: "flex", alignItems: "center", gap: 6
               }}
             >
-              <MessageSquare size={15} /> WhatsApp
+              <MessageSquare size={14} /> WhatsApp
             </button>
             <button
               type="button"
               onClick={onClose}
               style={{
-                background: "#f1f5f9", border: "none", width: 34, height: 34,
+                background: "#f1f5f9", border: "none", width: 32, height: 32,
                 borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer", color: "var(--text-gray)"
               }}
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
         </div>
@@ -151,7 +262,7 @@ export default function StandardBillModal({ order, onClose }) {
           id="printable-bill"
           style={{ 
             padding: "28px 32px", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-            color: "#0f172a", background: "white"
+            color: "#0f172a", background: "#ffffff", boxSizing: "border-box"
           }}
         >
           {/* 1. Store Header */}
@@ -341,35 +452,63 @@ export default function StandardBillModal({ order, onClose }) {
         <div 
           className="no-print"
           style={{ 
-            display: "flex", gap: 12, padding: "16px 28px", 
-            background: "#f8fafc", borderTop: "1px solid var(--border)" 
+            display: "flex", gap: 10, padding: "14px 20px", 
+            background: "#f8fafc", borderTop: "1px solid var(--border)",
+            flexWrap: "wrap"
           }}
         >
           <button
             type="button"
             onClick={onClose}
             className="mm-btn"
-            style={{ flex: 1, padding: 12, background: "white", color: "var(--text-dark)", fontWeight: 700 }}
+            style={{ minWidth: 90, padding: "12px 16px", background: "white", color: "var(--text-dark)", fontWeight: 700 }}
           >
-            Close Bill
+            Close
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDownloadPhoto}
+            disabled={isGenerating}
+            className="mm-btn-primary"
+            style={{ 
+              flex: 1, minWidth: 160, padding: "12px 16px", 
+              background: "#059669", color: "white", fontWeight: 800, 
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              cursor: isGenerating ? "wait" : "pointer",
+              boxShadow: "0 2px 8px rgba(5, 150, 105, 0.25)"
+            }}
+          >
+            {isGenerating ? <Loader2 size={16} className="spin" /> : <Camera size={16} />}
+            {isGenerating ? "Creating Photo..." : "📸 Download Bill Photo"}
           </button>
 
           <button
             type="button"
             onClick={handlePrint}
             className="mm-btn"
-            style={{ flex: 1, padding: 12, background: "#0f172a", color: "white", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+            style={{ 
+              flex: 1, minWidth: 130, padding: "12px 16px", 
+              background: "#0f172a", color: "white", fontWeight: 700, 
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6 
+            }}
           >
-            <Printer size={16} /> Print Receipt (Thermal / A4)
+            <Printer size={16} /> Print Bill
           </button>
 
           <button
             type="button"
-            onClick={handleWhatsAppShare}
+            onClick={handleSharePhoto}
+            disabled={isGenerating}
             className="mm-btn-primary"
-            style={{ flex: 1, padding: 12, background: "#25d366", color: "white", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+            style={{ 
+              flex: 1, minWidth: 130, padding: "12px 16px", 
+              background: "#25d366", color: "white", fontWeight: 800, 
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              cursor: isGenerating ? "wait" : "pointer"
+            }}
           >
-            <MessageSquare size={16} /> Send via WhatsApp
+            <MessageSquare size={16} /> WhatsApp Bill
           </button>
         </div>
       </div>
