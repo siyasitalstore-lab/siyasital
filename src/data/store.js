@@ -21,9 +21,12 @@ export const DEFAULT_BANNERS = [
 // Clean empty staff - only Master Admin exists by default, who creates and manages genuine Managers
 export const DEFAULT_STAFF = [];
 
+const envAdminEmail = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ADMIN_EMAIL) || "";
+const envAdminPass = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ADMIN_PASSWORD) || "";
+
 export const DEFAULT_ADMIN_CREDENTIALS = {
-  email: "admin@siyasitalstore.com",
-  password: "admin@siyasital123",
+  email: envAdminEmail || "admin@siyasitalstore.com",
+  password: envAdminPass || "admin@siyasital123",
   name: "Master Admin"
 };
 

@@ -50,18 +50,18 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
         (adminAuth?.email && cleanId === adminAuth.email.toLowerCase().trim()) ||
         (adminAuth?.name && cleanId === adminAuth.name.toLowerCase().trim());
 
-      const validAdminPasswords = [
-        adminPassword,
-        adminAuth?.password,
-        "admin@siyasital123",
-        "admin@123",
-        "admin123",
-        "siyasital123"
-      ].filter(Boolean).map(p => String(p).trim());
+      // Master Admin Password Security:
+      // If a custom password has been set, ONLY accept that password (reject old defaults)
+      const currentPassword = (adminAuth?.password || "").trim();
+      const isCustomPasswordSet = currentPassword && currentPassword !== "admin@siyasital123";
+
+      const isPasswordValid = isCustomPasswordSet 
+        ? cleanPass === currentPassword 
+        : (cleanPass === (adminPassword || "admin@siyasital123") || cleanPass === "admin@siyasital123");
 
       if (isAdminIdentifier) {
-        if (!validAdminPasswords.includes(cleanPass)) {
-          setError("Incorrect password for Master Admin. Please check your password.");
+        if (!isPasswordValid) {
+          setError("Incorrect password for Master Admin. Please check your credentials.");
           return;
         }
         const adminUser = {
