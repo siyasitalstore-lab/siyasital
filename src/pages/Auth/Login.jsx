@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, UserPlus, Shield, Lock, Mail, Phone, User, Eye, EyeOff, AlertCircle, ArrowLeft, KeyRound } from 'lucide-react';
+import { getSupabaseConfig, fetchSupabaseStaff } from '../../lib/supabase';
 
 export default function Login({ user, onLogin, customers = [], updateCustomers, staff = [], adminAuth = {} }) {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -39,25 +40,50 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
     // 1. SIGN IN FLOW (Strict Authentication with flexible Admin match)
     // ----------------------------------------------------
     if (!isSignUp) {
+      let currentStaff = staff;
+      let currentAdmin = adminAuth;
+
+      // When Supabase is connected, check real-time cloud credentials so phone/laptop sync instantly
+      if (getSupabaseConfig().isConfigured) {
+        try {
+          const freshStaff = await fetchSupabaseStaff();
+          if (freshStaff && freshStaff.length > 0) {
+            const freshAdmin = freshStaff.find(s => s.id === 'admin_master' || (s.role || '').toLowerCase() === 'admin');
+            if (freshAdmin && freshAdmin.email && freshAdmin.password) {
+              currentAdmin = {
+                email: freshAdmin.email,
+                password: freshAdmin.password,
+                name: freshAdmin.name || "Master Admin"
+              };
+            }
+            currentStaff = freshStaff.filter(s => s.id !== 'admin_master' && (s.role || '').toLowerCase() !== 'admin');
+          }
+        } catch (err) {
+          console.warn("Supabase auth sync:", err);
+        }
+      }
+
+      const activeEmail = ((currentAdmin?.email || "").trim() || "admin@siyasitalstore.com").toLowerCase();
+      const activePassword = (currentAdmin?.password || "").trim() || "admin@siyasital123";
+
       // A. Check Master Admin Credentials (Accepts admin, admin@siyasitalstore.com, custom email/id)
       const isAdminIdentifier = 
-        cleanId === adminEmail ||
+        cleanId === activeEmail ||
         cleanId === "admin" ||
         cleanId === "admin@siyasital.com" ||
         cleanId === "admin@siyasitalstore.com" ||
         cleanId === "siyasital" ||
         cleanId === "siyasitalstore" ||
-        (adminAuth?.email && cleanId === adminAuth.email.toLowerCase().trim()) ||
-        (adminAuth?.name && cleanId === adminAuth.name.toLowerCase().trim());
+        (currentAdmin?.email && cleanId === currentAdmin.email.toLowerCase().trim()) ||
+        (currentAdmin?.name && cleanId === currentAdmin.name.toLowerCase().trim());
 
       // Master Admin Password Security:
       // If a custom password has been set, ONLY accept that password (reject old defaults)
-      const currentPassword = (adminAuth?.password || "").trim();
-      const isCustomPasswordSet = currentPassword && currentPassword !== "admin@siyasital123";
+      const isCustomPasswordSet = activePassword && activePassword !== "admin@siyasital123";
 
       const isPasswordValid = isCustomPasswordSet 
-        ? cleanPass === currentPassword 
-        : (cleanPass === (adminPassword || "admin@siyasital123") || cleanPass === "admin@siyasital123");
+        ? cleanPass === activePassword 
+        : (cleanPass === activePassword || cleanPass === "admin@siyasital123");
 
       if (isAdminIdentifier) {
         if (!isPasswordValid) {
@@ -66,8 +92,8 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
         }
         const adminUser = {
           id: "admin_master",
-          name: (adminAuth?.name || "").trim() || "Master Admin",
-          email: adminEmail || "admin@siyasitalstore.com",
+          name: (currentAdmin?.name || "").trim() || "Master Admin",
+          email: activeEmail || "admin@siyasitalstore.com",
           role: "admin"
         };
         onLogin(adminUser);
@@ -79,7 +105,7 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
 
       // B. Check Manager Credentials (only genuine managers created by Admin)
       const cleanPhoneDigits = cleanId.replace(/\D/g, '');
-      const manager = staff.find(s => {
+      const manager = currentStaff.find(s => {
         const sEmail = (s.email || "").toLowerCase().trim();
         const sPhoneDigits = (s.phone || "").replace(/\D/g, '');
         return sEmail === cleanId || (cleanPhoneDigits.length >= 10 && sPhoneDigits === cleanPhoneDigits);

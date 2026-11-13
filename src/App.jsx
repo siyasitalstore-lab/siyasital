@@ -116,6 +116,19 @@ export default function App() {
         };
         setAdminAuth(syncedAdmin);
         saveAdminAuth(syncedAdmin);
+      } else {
+        const curAdmin = getAdminAuth();
+        if (curAdmin && curAdmin.email && curAdmin.password) {
+          upsertSupabaseStaff({
+            id: 'admin_master',
+            name: curAdmin.name || "Master Admin",
+            email: curAdmin.email,
+            password: curAdmin.password,
+            role: 'admin',
+            phone: '',
+            active: true
+          }).catch(console.error);
+        }
       }
       finalStaff = sbStaff.filter(s => s.id !== 'admin_master' && (s.role || '').toLowerCase() !== 'admin');
     }
