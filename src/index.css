@@ -378,6 +378,14 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
 }
 
+.dashboard-main-area {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  background: #f8fafc;
+  margin-left: 260px;
+}
+
 /* Responsive Split Layouts */
 .checkout-grid {
   display: grid;
@@ -490,6 +498,10 @@ h1, h2, h3, h4, h5, h6 {
 
   .dashboard-content-pad {
     padding: 16px 12px !important;
+  }
+
+  .dashboard-main-area {
+    margin-left: 0 !important;
   }
 
   .mm-block {

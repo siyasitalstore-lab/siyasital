@@ -82,39 +82,42 @@ export default function DashboardLayout({
       {/* Main Container */}
       <div style={{ display: 'flex', flex: 1, minHeight: '100vh', position: 'relative' }}>
         
-        {/* Desktop Sidebar (Fixed viewport height & sticky pinned so length never fluctuates with page content) */}
+        {/* Desktop Sidebar (100% Fixed, Immovable, Zero Scroll) */}
         <aside 
           className="desktop-only" 
           style={{ 
             width: 260, 
             height: '100vh',
-            maxHeight: '100vh',
-            position: 'sticky',
+            position: 'fixed',
             top: 0,
+            bottom: 0,
+            left: 0,
             background: '#0f172a', 
             color: 'white', 
+            display: 'flex',
             flexDirection: 'column',
             flexShrink: 0,
-            zIndex: 40,
+            overflow: 'hidden',
+            zIndex: 50,
             borderRight: '1px solid rgba(255,255,255,0.08)'
           }}
         >
           {/* Brand */}
-          <div style={{ padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            <div style={{ background: 'var(--primary)', color: 'white', padding: 8, borderRadius: 12, display: 'flex' }}>
-              <ShieldCheck size={22} />
+          <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+            <div style={{ background: 'var(--primary)', color: 'white', padding: 7, borderRadius: 10, display: 'flex' }}>
+              <ShieldCheck size={20} />
             </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 17 }}>SiyasitalStore</div>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>SiyasitalStore</div>
               <div style={{ fontSize: 11, color: '#94a3b8' }}>{title} Panel</div>
             </div>
           </div>
 
           {/* User Info */}
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 8 }}>Logged In As</div>
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 6 }}>Logged In As</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700 }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
                 {user?.name?.charAt(0) || 'U'}
               </div>
               <div style={{ overflow: 'hidden' }}>
@@ -124,16 +127,16 @@ export default function DashboardLayout({
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <div style={{ padding: '14px 12px', flex: 1, overflowY: 'auto', minHeight: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 8 }}>Menu</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {/* Navigation Links (Zero scroll, completely fixed) */}
+          <div style={{ padding: '10px 10px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 6, paddingLeft: 8 }}>Menu</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {sidebarItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => onTabChange(item.id)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
                     background: activeTab === item.id ? 'var(--primary)' : 'transparent',
                     color: activeTab === item.id ? 'white' : '#cbd5e1',
                     fontWeight: 600, fontSize: 13, transition: 'all 0.15s',
@@ -149,22 +152,22 @@ export default function DashboardLayout({
           </div>
 
           {/* Bottom Actions */}
-          <div style={{ padding: '14px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0, marginTop: 'auto' }}>
+          <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0, marginTop: 'auto' }}>
             <button 
               onClick={toggleTheme}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}
             >
               {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />} Toggle Theme
             </button>
             <button 
               onClick={() => navigate('/')}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}
             >
               <Store size={15} /> Back to Store
             </button>
             <button 
               onClick={onLogout}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, background: '#fef2f2', color: '#ef4444', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#ef4444', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}
             >
               <LogOut size={15} /> Logout
             </button>
@@ -281,7 +284,7 @@ export default function DashboardLayout({
         </div>
 
         {/* Main Content Area */}
-        <main style={{ flex: 1, minWidth: 0, minHeight: '100vh', background: '#f8fafc' }}>
+        <main className="dashboard-main-area">
           {children}
         </main>
 
