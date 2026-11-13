@@ -1731,13 +1731,16 @@ export default function AdminView({
 
               <div>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: 'var(--text-dark)' }}>
-                  Master Admin Login Email *
+                  Master Admin Login ID / Email *
                 </label>
                 <input 
-                  type="email" 
+                  type="text" 
                   className="mm-input" 
                   value={adminCredForm.email} 
                   onChange={e => setAdminCredForm({ ...adminCredForm, email: e.target.value })} 
+                  placeholder="e.g. admin or admin@siyasitalstore.com"
+                  autoCapitalize="none"
+                  autoCorrect="off"
                   required
                 />
               </div>

@@ -18,8 +18,8 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
   const adminPassword = (adminAuth?.password || "").trim() || "admin@siyasital123";
 
   const handleFillAdmin = () => {
-    setLoginId("admin@siyasitalstore.com");
-    setPassword(adminPassword || "admin@siyasital123");
+    setLoginId(adminAuth?.email?.trim() || "admin");
+    setPassword(adminPassword);
     setError('');
   };
 
@@ -39,7 +39,7 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
     // 1. SIGN IN FLOW (Strict Authentication with flexible Admin match)
     // ----------------------------------------------------
     if (!isSignUp) {
-      // A. Check Master Admin Credentials (Accepts admin, admin@siyasitalstore.com, admin@siyasital.com)
+      // A. Check Master Admin Credentials (Accepts admin, admin@siyasitalstore.com, custom email/id)
       const isAdminIdentifier = 
         cleanId === adminEmail ||
         cleanId === "admin" ||
@@ -47,19 +47,21 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
         cleanId === "admin@siyasitalstore.com" ||
         cleanId === "siyasital" ||
         cleanId === "siyasitalstore" ||
-        (adminAuth?.email && cleanId === adminAuth.email.toLowerCase().trim());
+        (adminAuth?.email && cleanId === adminAuth.email.toLowerCase().trim()) ||
+        (adminAuth?.name && cleanId === adminAuth.name.toLowerCase().trim());
 
       const validAdminPasswords = [
         adminPassword,
+        adminAuth?.password,
         "admin@siyasital123",
         "admin@123",
         "admin123",
         "siyasital123"
-      ].map(p => (p || "").trim());
+      ].filter(Boolean).map(p => String(p).trim());
 
       if (isAdminIdentifier) {
         if (!validAdminPasswords.includes(cleanPass)) {
-          setError("Incorrect password for Master Admin. Use password: admin@siyasital123");
+          setError("Incorrect password for Master Admin. Please check your password.");
           return;
         }
         const adminUser = {
@@ -256,7 +258,7 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8
           }}>
             <div style={{ color: '#475569', fontSize: 12 }}>
-              <span style={{ fontWeight: 700, color: 'var(--text-dark)' }}>👑 Master Admin:</span> Username is <code style={{ background: '#e2e8f0', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>admin</code>
+              <span style={{ fontWeight: 700, color: 'var(--text-dark)' }}>👑 Master Admin:</span> Login ID: <code style={{ background: '#e2e8f0', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>{adminAuth?.email || "admin"}</code>
             </div>
             <button
               type="button"
