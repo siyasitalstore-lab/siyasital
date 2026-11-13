@@ -6,7 +6,7 @@ import {
   getSupabaseConfig,
   fetchSupabaseProducts, upsertSupabaseProduct,
   fetchSupabaseOrders, upsertSupabaseOrder,
-  fetchSupabaseCustomers, upsertSupabaseCustomer,
+  fetchSupabaseCustomers, upsertSupabaseCustomer, deleteSupabaseCustomer,
   fetchSupabaseExpenses, upsertSupabaseExpense,
   fetchSupabaseStaff, upsertSupabaseStaff, deleteSupabaseStaff
 } from "./lib/supabase";
@@ -201,9 +201,11 @@ export default function App() {
   };
 
   const updateCustomers = async (next) => {
+    const removed = customers.filter(old => !next.some(n => n.id === old.id));
     setCustomers(next);
     if (!(await persist(KEYS.customers, next))) setSyncError(true);
     if (getSupabaseConfig().isConfigured) {
+      removed.forEach(r => deleteSupabaseCustomer(r.id).catch(console.error));
       next.forEach(c => upsertSupabaseCustomer(c).catch(console.error));
     }
   };

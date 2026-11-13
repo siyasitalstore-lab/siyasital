@@ -284,6 +284,20 @@ export async function upsertSupabaseCustomer(cust) {
   }
 }
 
+export async function deleteSupabaseCustomer(id) {
+  const client = supabase();
+  if (!client) return false;
+
+  try {
+    const { error } = await client.from("customers").delete().eq("id", id);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error("deleteSupabaseCustomer error:", err.message);
+    return false;
+  }
+}
+
 // 4. EXPENSES
 export async function fetchSupabaseExpenses() {
   const client = supabase();

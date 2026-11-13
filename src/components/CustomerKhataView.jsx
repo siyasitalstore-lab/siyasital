@@ -2,7 +2,8 @@ import React, { useState, useMemo } from "react";
 import { 
   BookOpen, Search, Plus, User, Phone, MapPin, IndianRupee, 
   AlertCircle, CheckCircle2, Clock, MessageSquare, ArrowUpRight, 
-  ArrowDownLeft, ShoppingBag, X, Calendar, Wallet, QrCode, FileText, ChevronRight
+  ArrowDownLeft, ShoppingBag, X, Calendar, Wallet, QrCode, FileText, ChevronRight,
+  Trash2
 } from "lucide-react";
 import { money, getCustomerKhataStatement, STORE_CONFIG } from "../data/store";
 import StandardBillModal from "./StandardBillModal";
@@ -227,6 +228,31 @@ export default function CustomerKhataView({ customers = [], updateCustomers, ord
     msg += `Thank you!\n${STORE_CONFIG.name}`;
 
     window.open(`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  // Delete Customer (Only allowed when account balance is 0 / Cleared)
+  const handleDeleteCustomer = (customer, e) => {
+    if (e) e.stopPropagation();
+
+    const stmt = customerStatements.get(customer.id) || { currentDue: 0 };
+    const currentDue = Number(stmt.currentDue) || 0;
+
+    // Strict Rule: Cannot delete customer if account balance is not zero
+    if (currentDue > 0) {
+      alert(`⚠️ Customer "${customer.name}" cannot be deleted!\n\nThis customer currently has a pending balance of ${money(currentDue)}.\n\nPlease collect or settle all dues before deleting their account.`);
+      return;
+    }
+
+    const confirmMsg = `Are you sure you want to delete customer "${customer.name}"?\n\nTheir current balance is ₹0 (Fully Cleared).\nOnce deleted, this customer profile and ledger history will be permanently removed.`;
+    if (window.confirm(confirmMsg)) {
+      const nextCustomers = customers.filter(c => c.id !== customer.id);
+      if (updateCustomers) {
+        updateCustomers(nextCustomers);
+      }
+      if (selectedCustomer?.id === customer.id) {
+        setSelectedCustomer(null);
+      }
+    }
   };
 
   const activeStatement = selectedCustomer ? customerStatements.get(selectedCustomer.id) : null;
@@ -479,7 +505,7 @@ export default function CustomerKhataView({ customers = [], updateCustomers, ord
 
                       {/* Actions */}
                       <td style={{ padding: "16px 20px", textAlign: "right" }}>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
                           <button
                             type="button"
                             onClick={() => setSelectedCustomer(customer)}
@@ -516,6 +542,29 @@ export default function CustomerKhataView({ customers = [], updateCustomers, ord
                               <MessageSquare size={13} />
                             </button>
                           )}
+
+                          {/* Delete Customer Button: Only active if balance is 0 */}
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteCustomer(customer, e)}
+                            style={{ 
+                              background: hasDue ? "#f1f5f9" : "#fee2e2", 
+                              color: hasDue ? "#94a3b8" : "#dc2626", 
+                              border: `1px solid ${hasDue ? "#e2e8f0" : "#fca5a5"}`,
+                              padding: "6px 10px", 
+                              borderRadius: 8,
+                              fontSize: 12, 
+                              fontWeight: 700, 
+                              cursor: hasDue ? "not-allowed" : "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              opacity: hasDue ? 0.6 : 1
+                            }}
+                            title={hasDue ? `Cannot delete: Pending balance is ${money(stmt.currentDue)} (Balance must be ₹0)` : "Delete Customer (Account balance is ₹0)"}
+                          >
+                            <Trash2 size={13} /> Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -564,14 +613,37 @@ export default function CustomerKhataView({ customers = [], updateCustomers, ord
                   </div>
                 </div>
 
-                <button 
-                  type="button" 
-                  onClick={() => setSelectedCustomer(null)} 
-                  className="mm-iconbtn" 
-                  style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "none" }}
-                >
-                  <X size={18} />
-                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteCustomer(selectedCustomer, e)}
+                    style={{
+                      background: activeStatement.currentDue > 0 ? "rgba(255,255,255,0.1)" : "#fee2e2",
+                      color: activeStatement.currentDue > 0 ? "rgba(255,255,255,0.4)" : "#dc2626",
+                      border: activeStatement.currentDue > 0 ? "1px solid rgba(255,255,255,0.2)" : "1px solid #fca5a5",
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: activeStatement.currentDue > 0 ? "not-allowed" : "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4
+                    }}
+                    title={activeStatement.currentDue > 0 ? `Cannot delete: Pending balance is ${money(activeStatement.currentDue)} (Balance must be ₹0)` : "Delete Customer Profile"}
+                  >
+                    <Trash2 size={13} /> Delete Account
+                  </button>
+
+                  <button 
+                    type="button" 
+                    onClick={() => setSelectedCustomer(null)} 
+                    className="mm-iconbtn" 
+                    style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "none" }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
 
               {/* Current Outstanding Due Meter */}
