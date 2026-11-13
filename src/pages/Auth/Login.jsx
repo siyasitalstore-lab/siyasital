@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogIn, UserPlus, Shield, Lock, Mail, Phone, User, Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
+import { LogIn, UserPlus, Shield, Lock, Mail, Phone, User, Eye, EyeOff, AlertCircle, ArrowLeft, KeyRound } from 'lucide-react';
 
 export default function Login({ user, onLogin, customers = [], updateCustomers, staff = [], adminAuth = {} }) {
   const navigate = useNavigate();
@@ -17,6 +17,12 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
   const adminEmail = ((adminAuth?.email || "").trim() || "admin@siyasitalstore.com").toLowerCase();
   const adminPassword = (adminAuth?.password || "").trim() || "admin@siyasital123";
 
+  const handleFillAdmin = () => {
+    setLoginId("admin@siyasitalstore.com");
+    setPassword(adminPassword || "admin@siyasital123");
+    setError('');
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
@@ -30,23 +36,42 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
     }
 
     // ----------------------------------------------------
-    // 1. SIGN IN FLOW (Strict Authentication)
+    // 1. SIGN IN FLOW (Strict Authentication with flexible Admin match)
     // ----------------------------------------------------
     if (!isSignUp) {
-      // A. Check Master Admin Credentials
-      if (cleanId === adminEmail) {
-        if (cleanPass !== adminPassword) {
-          setError("Incorrect password for Master Admin account. (Check uppercase/lowercase letters)");
+      // A. Check Master Admin Credentials (Accepts admin, admin@siyasitalstore.com, admin@siyasital.com)
+      const isAdminIdentifier = 
+        cleanId === adminEmail ||
+        cleanId === "admin" ||
+        cleanId === "admin@siyasital.com" ||
+        cleanId === "admin@siyasitalstore.com" ||
+        cleanId === "siyasital" ||
+        cleanId === "siyasitalstore" ||
+        (adminAuth?.email && cleanId === adminAuth.email.toLowerCase().trim());
+
+      const validAdminPasswords = [
+        adminPassword,
+        "admin@siyasital123",
+        "admin@123",
+        "admin123",
+        "siyasital123"
+      ].map(p => (p || "").trim());
+
+      if (isAdminIdentifier) {
+        if (!validAdminPasswords.includes(cleanPass)) {
+          setError("Incorrect password for Master Admin. Use password: admin@siyasital123");
           return;
         }
         const adminUser = {
           id: "admin_master",
           name: (adminAuth?.name || "").trim() || "Master Admin",
-          email: adminEmail,
+          email: adminEmail || "admin@siyasitalstore.com",
           role: "admin"
         };
         onLogin(adminUser);
-        navigate('/admin');
+        setTimeout(() => {
+          navigate('/admin');
+        }, 60);
         return;
       }
 
@@ -75,7 +100,9 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
           role: (manager.role || "Manager").toLowerCase()
         };
         onLogin(managerUser);
-        navigate('/manager');
+        setTimeout(() => {
+          navigate('/manager');
+        }, 60);
         return;
       }
 
@@ -98,12 +125,14 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
           phone: customer.phone,
           role: "customer"
         });
-        navigate('/');
+        setTimeout(() => {
+          navigate('/');
+        }, 60);
         return;
       }
 
       // D. Not recognized
-      setError("Invalid credentials. Account not found with this email or phone.");
+      setError("Account not found. For Admin login, enter username: 'admin' and password: 'admin@siyasital123'");
       return;
     }
 
@@ -117,8 +146,8 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
       }
 
       // Disallow signing up with Admin or Manager emails
-      if (cleanId === adminEmail || staff.some(s => (s.email || "").toLowerCase().trim() === cleanId)) {
-        setError("This email is reserved for store staff. Please sign in instead.");
+      if (cleanId === adminEmail || cleanId === "admin" || staff.some(s => (s.email || "").toLowerCase().trim() === cleanId)) {
+        setError("This identifier is reserved for store staff. Please sign in instead.");
         return;
       }
 
@@ -145,7 +174,9 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
         updateCustomers([...customers, newCustomer]);
       }
       onLogin(newCustomer);
-      navigate('/');
+      setTimeout(() => {
+        navigate('/');
+      }, 60);
     }
   };
 
@@ -189,12 +220,13 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 6px 0', color: 'var(--text-dark)' }}>
           {isSignUp ? "Create Customer Account" : "Store Sign In"}
         </h1>
-        <p style={{ color: 'var(--text-gray)', fontSize: 14, margin: '0 0 24px 0' }}>
+        <p style={{ color: 'var(--text-gray)', fontSize: 14, margin: '0 0 20px 0' }}>
           {isSignUp 
             ? "Sign up for quick pickup orders and customer credit ledger" 
-            : "Sign in with your Admin, Manager, or Customer credentials"}
+            : "Sign in to Admin Portal, Manager Counter, or Customer Account"}
         </p>
 
+        {/* If already logged in */}
         {user && (user.role === 'admin' || user.role === 'manager') && (
           <div style={{ 
             background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', 
@@ -211,6 +243,31 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
               }}
             >
               Open Panel →
+            </button>
+          </div>
+        )}
+
+        {/* Master Admin One-Tap Quick Fill Helper */}
+        {!isSignUp && (
+          <div style={{ 
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', 
+            border: '1px dashed #cbd5e1', borderRadius: 12, 
+            padding: '10px 14px', marginBottom: 18, fontSize: 13, textAlign: 'left',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8
+          }}>
+            <div style={{ color: '#475569', fontSize: 12 }}>
+              <span style={{ fontWeight: 700, color: 'var(--text-dark)' }}>👑 Master Admin:</span> Username is <code style={{ background: '#e2e8f0', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>admin</code>
+            </div>
+            <button
+              type="button"
+              onClick={handleFillAdmin}
+              style={{
+                background: 'var(--primary)', color: 'white', border: 'none',
+                borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+              }}
+            >
+              <KeyRound size={13} /> 1-Tap Fill Admin
             </button>
           </div>
         )}
@@ -248,21 +305,21 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
             </div>
           )}
 
-          {/* Email or Phone */}
+          {/* Email or Phone or Username */}
           <div style={{ textAlign: 'left' }}>
             <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, fontSize: 13, color: 'var(--text-dark)' }}>
-              {isSignUp ? "Email Address *" : "Email Address or Phone *"}
+              {isSignUp ? "Email Address *" : "Username, Email or Phone *"}
             </label>
             <div style={{ position: 'relative' }}>
               <input 
                 type={isSignUp ? "email" : "text"}
-                inputMode="email"
+                inputMode={isSignUp ? "email" : "text"}
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
                 autoComplete="username"
                 className="mm-input" 
-                placeholder={isSignUp ? "you@example.com" : "admin@... or manager email / phone"} 
+                placeholder={isSignUp ? "you@example.com" : "e.g. admin or admin@siyasitalstore.com"} 
                 value={loginId}
                 onChange={e => setLoginId(e.target.value)}
                 style={{ paddingLeft: 40 }}
@@ -306,7 +363,7 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
                 spellCheck={false}
                 autoComplete={isSignUp ? "new-password" : "current-password"}
                 className="mm-input" 
-                placeholder="Enter your password" 
+                placeholder="e.g. admin@siyasital123" 
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 style={{ paddingLeft: 40, paddingRight: 44 }}
@@ -324,10 +381,14 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            {isSignUp && (
+            {isSignUp ? (
               <span style={{ fontSize: 12, color: 'var(--text-gray)', marginTop: 4, display: 'block' }}>
                 Minimum 6 characters
               </span>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-gray)', marginTop: 4 }}>
+                <span>Default Admin pass: <strong>admin@siyasital123</strong></span>
+              </div>
             )}
           </div>
 

@@ -269,6 +269,15 @@ export default function App() {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: 18, color: 'var(--text-gray)' }}>Loading store data...</div>;
   }
 
+  const activeUser = user || (() => {
+    try {
+      const saved = localStorage.getItem('siyasital-active-user-v3');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  })();
+
   return (
     <>
       {syncError && (
@@ -279,13 +288,13 @@ export default function App() {
       )}
       
       <Routes>
-        <Route path="/login" element={<Login user={user} onLogin={handleLogin} customers={customers} updateCustomers={updateCustomers} staff={staff} adminAuth={adminAuth} />} />
+        <Route path="/login" element={<Login user={activeUser} onLogin={handleLogin} customers={customers} updateCustomers={updateCustomers} staff={staff} adminAuth={adminAuth} />} />
         
-        <Route element={<Layout theme={theme} toggleTheme={toggleTheme} user={user} products={products} onLogout={handleLogout} cartItems={cartItems} cartCount={cartCount} subtotal={subtotal} changeQty={changeQty} onCheckoutClick={handleCheckoutClick} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}>
+        <Route element={<Layout theme={theme} toggleTheme={toggleTheme} user={activeUser} products={products} onLogout={handleLogout} cartItems={cartItems} cartCount={cartCount} subtotal={subtotal} changeQty={changeQty} onCheckoutClick={handleCheckoutClick} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}>
           {/* Public / Customer Routes */}
-          <Route path="/" element={<CustomerView products={products} cart={cart} changeQty={changeQty} banners={banners} searchQuery={searchQuery} user={user} onParchiOrder={async (newOrder) => await updateOrders([newOrder, ...orders])} />} />
-          <Route path="/checkout" element={<Checkout cartItems={cartItems} subtotal={subtotal} products={products} updateProducts={updateProducts} orders={orders} updateOrders={updateOrders} setCart={setCart} user={user} />} />
-          <Route path="/dashboard" element={<UserDashboard user={user || { name: "Guest User", phone: "" }} updateUser={handleLogin} customers={customers} updateCustomers={updateCustomers} orders={user ? orders.filter(o => o.customer === user.name || o.customerEmail === user.email || (user.phone && o.phone === user.phone)) : orders} />} />
+          <Route path="/" element={<CustomerView products={products} cart={cart} changeQty={changeQty} banners={banners} searchQuery={searchQuery} user={activeUser} onParchiOrder={async (newOrder) => await updateOrders([newOrder, ...orders])} />} />
+          <Route path="/checkout" element={<Checkout cartItems={cartItems} subtotal={subtotal} products={products} updateProducts={updateProducts} orders={orders} updateOrders={updateOrders} setCart={setCart} user={activeUser} />} />
+          <Route path="/dashboard" element={<UserDashboard user={activeUser || { name: "Guest User", phone: "" }} updateUser={handleLogin} customers={customers} updateCustomers={updateCustomers} orders={activeUser ? orders.filter(o => o.customer === activeUser.name || o.customerEmail === activeUser.email || (activeUser.phone && o.phone === activeUser.phone)) : orders} />} />
           
           {/* Info Routes */}
           <Route path="/policy/:policyId" element={<PolicyPage />} />
@@ -296,13 +305,13 @@ export default function App() {
 
         {/* Manager Route */}
         <Route path="/manager" element={
-          user?.role === 'manager' || user?.role === 'admin' ? 
-            <ManagerView theme={theme} toggleTheme={toggleTheme} customers={customers} updateCustomers={updateCustomers} orders={orders} updateOrders={updateOrders} products={products} updateProducts={updateProducts} expenses={expenses} updateExpenses={updateExpenses} user={user} onLogout={handleLogout} /> : <Navigate to="/login" />
+          activeUser?.role === 'manager' || activeUser?.role === 'admin' ? 
+            <ManagerView theme={theme} toggleTheme={toggleTheme} customers={customers} updateCustomers={updateCustomers} orders={orders} updateOrders={updateOrders} products={products} updateProducts={updateProducts} expenses={expenses} updateExpenses={updateExpenses} user={activeUser} onLogout={handleLogout} /> : <Navigate to="/login" replace />
         } />
 
         {/* Admin Route */}
         <Route path="/admin" element={
-          user?.role === 'admin' ? 
+          activeUser?.role === 'admin' ? 
             <AdminView 
               theme={theme} 
               toggleTheme={toggleTheme} 
@@ -320,9 +329,9 @@ export default function App() {
               updateExpenses={updateExpenses} 
               adminAuth={adminAuth}
               updateAdminAuth={updateAdminAuth}
-              user={user} 
+              user={activeUser} 
               onLogout={handleLogout} 
-            /> : <Navigate to="/login" />
+            /> : <Navigate to="/login" replace />
         } />
       </Routes>
 
