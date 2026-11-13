@@ -77,6 +77,14 @@ create table if not exists public.staff (
   created_at timestamptz default now()
 );
 
+-- Ensure all staff columns exist even if table was created previously
+alter table public.staff add column if not exists name text default '';
+alter table public.staff add column if not exists email text default '';
+alter table public.staff add column if not exists password text default '';
+alter table public.staff add column if not exists role text default 'Manager';
+alter table public.staff add column if not exists phone text default '';
+alter table public.staff add column if not exists active boolean default true;
+
 -- 6. BANNERS TABLE
 create table if not exists public.banners (
   id text primary key,
