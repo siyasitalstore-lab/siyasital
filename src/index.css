@@ -579,8 +579,24 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .standard-bill-overlay,
-  .standard-bill-overlay * {
+  .standard-bill-overlay *,
+  #printable-business-report,
+  #printable-business-report * {
     visibility: visible !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  #printable-business-report {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 900px !important;
+    margin: 0 auto !important;
+    padding: 10px !important;
+    background: #ffffff !important;
   }
 
   .standard-bill-overlay {

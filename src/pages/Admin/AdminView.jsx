@@ -10,6 +10,7 @@ import { LOW_STOCK, money, orderTotal, CATEGORIES, EXPENSE_CATEGORIES, parseDate
 import DashboardLayout from "../../components/DashboardLayout";
 import DailyBillsView from "../../components/DailyBillsView";
 import CustomerKhataView from "../../components/CustomerKhataView";
+import DateRangeReportsView from "../../components/DateRangeReportsView";
 
 export default function AdminView({ 
   theme, toggleTheme,
@@ -597,6 +598,7 @@ export default function AdminView({
   const sidebarItems = [
     { id: 'stats', label: 'Sales & Analytics', icon: <BarChart3 size={18} /> },
     { id: 'daily-bills', label: 'Daily Bills & Invoices', icon: <Receipt size={18} /> },
+    { id: 'reports', label: 'Business & Stock Reports', icon: <TrendingUp size={18} /> },
     { id: 'customers', label: 'Customer Credit Ledger', icon: <BookOpen size={18} /> },
     { id: 'expenses', label: 'Store Expenses', icon: <FileText size={18} /> },
     { id: 'products', label: 'Inventory Management', icon: <Package size={18} /> },
@@ -686,6 +688,22 @@ export default function AdminView({
                 </div>
               </div>
             )}
+
+            {/* Quick Link to Detailed Date-Range Reports */}
+            <button
+              type="button"
+              onClick={() => setTab("reports")}
+              className="mm-btn-primary"
+              style={{
+                background: "#059669", color: "white", padding: "8px 16px",
+                borderRadius: 8, fontSize: 12, fontWeight: 800, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6,
+                boxShadow: "0 2px 8px rgba(5, 150, 105, 0.25)"
+              }}
+              title="Open full date-range business and stock data reports"
+            >
+              <TrendingUp size={15} /> 📊 Item Sales & Stock Reports (डेटा निकालें) →
+            </button>
             
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'rgba(79, 70, 229, 0.08)', padding: '6px 14px', borderRadius: 20 }}>
               Showing: <strong>{analyticsDateBounds.label}</strong>
@@ -1534,6 +1552,17 @@ export default function AdminView({
           updateOrders={updateOrders} 
           isAdmin={true}
           user={user}
+        />
+      )}
+
+      {/* 2. DATE-RANGE BUSINESS & STOCK REPORTS TAB */}
+      {tab === "reports" && (
+        <DateRangeReportsView 
+          orders={orders}
+          products={products}
+          expenses={expenses}
+          customers={customers}
+          theme={theme}
         />
       )}
 
