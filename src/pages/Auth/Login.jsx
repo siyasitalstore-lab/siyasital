@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogIn, UserPlus, Shield, Lock, Mail, Phone, User, Eye, EyeOff, AlertCircle, ArrowLeft, KeyRound } from 'lucide-react';
+import { LogIn, UserPlus, Shield, Lock, Mail, Phone, User, Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
 import { getSupabaseConfig, fetchSupabaseStaff } from '../../lib/supabase';
 
 export default function Login({ user, onLogin, customers = [], updateCustomers, staff = [], adminAuth = {} }) {
@@ -15,15 +15,6 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const adminEmail = ((adminAuth?.email || "").trim() || "admin@siyasitalstore.com").toLowerCase();
-  const adminPassword = (adminAuth?.password || "").trim() || "admin@siyasital123";
-
-  const handleFillAdmin = () => {
-    setLoginId(adminAuth?.email?.trim() || "admin");
-    setPassword(adminPassword);
-    setError('');
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -37,13 +28,13 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
     }
 
     // ----------------------------------------------------
-    // 1. SIGN IN FLOW (Strict Authentication with flexible Admin match)
+    // 1. SIGN IN FLOW (Strict Authentication from Database)
     // ----------------------------------------------------
     if (!isSignUp) {
       let currentStaff = staff;
       let currentAdmin = adminAuth;
 
-      // When Supabase is connected, check real-time cloud credentials so phone/laptop sync instantly
+      // When Supabase is connected, check real-time cloud credentials from database
       if (getSupabaseConfig().isConfigured) {
         try {
           const freshStaff = await fetchSupabaseStaff();
@@ -64,36 +55,25 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
       }
 
       const activeEmail = ((currentAdmin?.email || "").trim() || "admin@siyasitalstore.com").toLowerCase();
-      const activePassword = (currentAdmin?.password || "").trim() || "admin@siyasital123";
+      const activePassword = (currentAdmin?.password || "").trim();
 
-      // A. Check Master Admin Credentials (Accepts admin, admin@siyasitalstore.com, custom email/id)
+      // A. Check Master Admin Credentials strictly from Database
       const isAdminIdentifier = 
         cleanId === activeEmail ||
         cleanId === "admin" ||
-        cleanId === "admin@siyasital.com" ||
-        cleanId === "admin@siyasitalstore.com" ||
-        cleanId === "siyasital" ||
-        cleanId === "siyasitalstore" ||
         (currentAdmin?.email && cleanId === currentAdmin.email.toLowerCase().trim()) ||
         (currentAdmin?.name && cleanId === currentAdmin.name.toLowerCase().trim());
 
-      // Master Admin Password Security:
-      // If a custom password has been set, ONLY accept that password (reject old defaults)
-      const isCustomPasswordSet = activePassword && activePassword !== "admin@siyasital123";
-
-      const isPasswordValid = isCustomPasswordSet 
-        ? cleanPass === activePassword 
-        : (cleanPass === activePassword || cleanPass === "admin@siyasital123");
-
       if (isAdminIdentifier) {
-        if (!isPasswordValid) {
-          setError("Incorrect password for Master Admin. Please check your credentials.");
+        // STRICT DATABASE CHECK: Only the password stored in database/adminAuth is accepted!
+        if (!activePassword || cleanPass !== activePassword) {
+          setError("Invalid username, email or password.");
           return;
         }
         const adminUser = {
           id: "admin_master",
           name: (currentAdmin?.name || "").trim() || "Master Admin",
-          email: activeEmail || "admin@siyasitalstore.com",
+          email: activeEmail,
           role: "admin"
         };
         onLogin(adminUser);
@@ -103,7 +83,7 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
         return;
       }
 
-      // B. Check Manager Credentials (only genuine managers created by Admin)
+      // B. Check Manager Credentials strictly from Database
       const cleanPhoneDigits = cleanId.replace(/\D/g, '');
       const manager = currentStaff.find(s => {
         const sEmail = (s.email || "").toLowerCase().trim();
@@ -113,11 +93,11 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
 
       if (manager) {
         if (manager.active === false) {
-          setError("This manager account has been deactivated by the Admin.");
+          setError("This account has been deactivated. Please contact the administrator.");
           return;
         }
         if (cleanPass !== (manager.password || "").trim()) {
-          setError("Incorrect password for Manager account.");
+          setError("Invalid username, email or password.");
           return;
         }
         const managerUser = {
@@ -142,44 +122,35 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
       });
 
       if (customer) {
-        if (customer.password && customer.password.trim() !== cleanPass) {
-          setError("Incorrect password for customer account.");
+        if (cleanPass !== (customer.password || "").trim()) {
+          setError("Invalid username, email or password.");
           return;
         }
-        onLogin({
-          id: customer.id,
-          name: customer.name,
-          email: customer.email,
-          phone: customer.phone,
-          role: "customer"
-        });
+        onLogin(customer);
         setTimeout(() => {
           navigate('/');
         }, 60);
         return;
       }
 
-      // D. Not recognized
-      setError("Account not found. For Admin login, enter username: 'admin' and password: 'admin@siyasital123'");
+      setError("Invalid username, email or password.");
       return;
     }
 
     // ----------------------------------------------------
-    // 2. SIGN UP FLOW (Customer Registration Only)
+    // 2. SIGN UP FLOW (Customer registration)
     // ----------------------------------------------------
     if (isSignUp) {
       if (cleanPass.length < 6) {
-        setError("Password must be at least 6 characters long.");
+        setError("Password must be at least 6 characters.");
         return;
       }
 
-      // Disallow signing up with Admin or Manager emails
-      if (cleanId === adminEmail || cleanId === "admin" || staff.some(s => (s.email || "").toLowerCase().trim() === cleanId)) {
+      if (cleanId === "admin" || cleanId.includes("admin@")) {
         setError("This identifier is reserved for store staff. Please sign in instead.");
         return;
       }
 
-      // Check if email already registered as customer
       if (customers.some(c => (c.email || "").toLowerCase().trim() === cleanId)) {
         setError("An account with this email already exists. Please sign in.");
         return;
@@ -212,7 +183,7 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '20px 14px', background: 'var(--bg-color)' }}>
       
       {/* Back to Store Link */}
-      <div style={{ width: '100%', maxWidth: 460, marginBottom: 14 }}>
+      <div style={{ width: '100%', maxWidth: 440, marginBottom: 14 }}>
         <Link 
           to="/" 
           style={{ 
@@ -226,11 +197,11 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
       </div>
 
       <div style={{ 
-        maxWidth: 460, width: '100%', 
+        maxWidth: 440, width: '100%', 
         background: 'var(--surface)', 
         borderRadius: 20, 
         border: '1px solid var(--border)',
-        padding: 'clamp(22px, 5vw, 38px)', 
+        padding: 'clamp(24px, 5vw, 36px)', 
         textAlign: 'center', 
         boxShadow: '0 20px 40px rgba(0,0,0,0.08)' 
       }}>
@@ -238,205 +209,190 @@ export default function Login({ user, onLogin, customers = [], updateCustomers, 
         {/* Header Icon */}
         <div style={{ 
           background: 'rgba(79, 70, 229, 0.1)', 
-          width: 60, height: 60, borderRadius: '50%', 
+          width: 56, height: 56, borderRadius: '50%', 
           display: 'flex', alignItems: 'center', justifyContent: 'center', 
           margin: '0 auto 16px', color: 'var(--primary)' 
         }}>
-          {isSignUp ? <UserPlus size={28} /> : <Shield size={28} />}
+          {isSignUp ? <UserPlus size={26} /> : <Shield size={26} />}
         </div>
 
-        <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 6px 0', color: 'var(--text-dark)' }}>
-          {isSignUp ? "Create Customer Account" : "Store Sign In"}
-        </h1>
-        <p style={{ color: 'var(--text-gray)', fontSize: 14, margin: '0 0 20px 0' }}>
-          {isSignUp 
-            ? "Sign up for quick pickup orders and customer credit ledger" 
-            : "Sign in to Admin Portal, Manager Counter, or Customer Account"}
-        </p>
-
-        {/* If already logged in */}
-        {user && (user.role === 'admin' || user.role === 'manager') && (
-          <div style={{ 
-            background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', 
-            padding: '12px 14px', borderRadius: 12, marginBottom: 18, fontSize: 13, 
-            textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 
-          }}>
-            <span>Signed in as <strong>{user.name}</strong> ({user.role})</span>
-            <button 
-              type="button" 
-              onClick={() => navigate(user.role === 'admin' ? '/admin' : '/manager')}
-              style={{ 
-                background: '#10b981', color: 'white', border: 'none', borderRadius: 8, 
-                padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 
-              }}
-            >
-              Open Panel →
-            </button>
-          </div>
-        )}
-
-        {/* Master Admin One-Tap Quick Fill Helper */}
-        {!isSignUp && (
-          <div style={{ 
-            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', 
-            border: '1px dashed #cbd5e1', borderRadius: 12, 
-            padding: '10px 14px', marginBottom: 18, fontSize: 13, textAlign: 'left',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8
-          }}>
-            <div style={{ color: '#475569', fontSize: 12 }}>
-              <span style={{ fontWeight: 700, color: 'var(--text-dark)' }}>👑 Master Admin:</span> Login ID: <code style={{ background: '#e2e8f0', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>{adminAuth?.email || "admin"}</code>
-            </div>
-            <button
-              type="button"
-              onClick={handleFillAdmin}
-              style={{
-                background: 'var(--primary)', color: 'white', border: 'none',
-                borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
-              }}
-            >
-              <KeyRound size={13} /> 1-Tap Fill Admin
-            </button>
-          </div>
-        )}
-
-        {error && (
-          <div style={{ 
-            background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', 
-            padding: '12px 14px', borderRadius: 10, marginBottom: 18, fontSize: 13, 
-            textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10 
-          }}>
-            <AlertCircle size={18} style={{ flexShrink: 0 }} />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Full Name (Sign Up only) */}
-          {isSignUp && (
-            <div style={{ textAlign: 'left' }}>
-              <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, fontSize: 13, color: 'var(--text-dark)' }}>
-                Full Name *
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input 
-                  type="text" 
-                  className="mm-input" 
-                  placeholder="e.g. Ramesh Kumar" 
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  style={{ paddingLeft: 40 }}
-                  required
-                />
-                <User size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              </div>
-            </div>
-          )}
-
-          {/* Email or Phone or Username */}
-          <div style={{ textAlign: 'left' }}>
-            <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, fontSize: 13, color: 'var(--text-dark)' }}>
-              {isSignUp ? "Email Address *" : "Username, Email or Phone *"}
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type={isSignUp ? "email" : "text"}
-                inputMode={isSignUp ? "email" : "text"}
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                autoComplete="username"
-                className="mm-input" 
-                placeholder={isSignUp ? "you@example.com" : "e.g. admin or admin@siyasitalstore.com"} 
-                value={loginId}
-                onChange={e => setLoginId(e.target.value)}
-                style={{ paddingLeft: 40 }}
-                required
-              />
-              <Mail size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-            </div>
-          </div>
-
-          {/* Phone (Sign Up only) */}
-          {isSignUp && (
-            <div style={{ textAlign: 'left' }}>
-              <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, fontSize: 13, color: 'var(--text-dark)' }}>
-                Phone Number (for pickup SMS/WhatsApp)
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input 
-                  type="tel" 
-                  inputMode="numeric"
-                  className="mm-input" 
-                  placeholder="10-digit mobile number" 
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  style={{ paddingLeft: 40 }}
-                />
-                <Phone size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              </div>
-            </div>
-          )}
-
-          {/* Password */}
-          <div style={{ textAlign: 'left' }}>
-            <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, fontSize: 13, color: 'var(--text-dark)' }}>
-              Password *
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type={showPassword ? "text" : "password"} 
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                autoComplete={isSignUp ? "new-password" : "current-password"}
-                className="mm-input" 
-                placeholder="e.g. admin@siyasital123" 
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                style={{ paddingLeft: 40, paddingRight: 44 }}
-                required
-              />
-              <Lock size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+        {/* If user is ALREADY signed in, show clean account portal shortcut instead of exposing credentials */}
+        {user ? (
+          <div style={{ textAlign: 'center', padding: '8px 0' }}>
+            <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 6px 0', color: 'var(--text-dark)' }}>
+              Already Signed In
+            </h1>
+            <p style={{ color: 'var(--text-gray)', fontSize: 14, margin: '0 0 20px 0' }}>
+              You are currently signed in as <strong>{user.name}</strong> ({user.role?.toUpperCase()})
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <button 
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                type="button" 
+                className="mm-btn-primary"
+                onClick={() => navigate(user.role === 'admin' ? '/admin' : user.role === 'manager' ? '/manager' : '/')}
+                style={{ width: '100%', padding: '14px', fontSize: 15, fontWeight: 700, borderRadius: 10, minHeight: 48 }}
+              >
+                Go to {user.role === 'admin' ? 'Admin Portal' : user.role === 'manager' ? 'Manager Counter' : 'Store'} →
+              </button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  try {
+                    localStorage.removeItem('siyasital-active-user-v3');
+                  } catch {}
+                  window.location.reload();
+                }}
                 style={{ 
-                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 6 
+                  background: 'none', border: '1px solid var(--border)', borderRadius: 10, 
+                  padding: '12px', fontSize: 13, fontWeight: 600, color: 'var(--text-gray)', cursor: 'pointer' 
                 }}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                Sign Out / Switch Account
               </button>
             </div>
-            {isSignUp ? (
-              <span style={{ fontSize: 12, color: 'var(--text-gray)', marginTop: 4, display: 'block' }}>
-                Minimum 6 characters
-              </span>
-            ) : (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-gray)', marginTop: 4 }}>
-                <span>Default Admin pass: <strong>admin@siyasital123</strong></span>
+          </div>
+        ) : (
+          <>
+            <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 6px 0', color: 'var(--text-dark)' }}>
+              {isSignUp ? "Create Customer Account" : "Secure Sign In"}
+            </h1>
+            <p style={{ color: 'var(--text-gray)', fontSize: 14, margin: '0 0 22px 0' }}>
+              {isSignUp 
+                ? "Sign up for quick pickup orders and customer account" 
+                : "Enter your credentials to access your account"}
+            </p>
+
+            {error && (
+              <div style={{ 
+                background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', 
+                padding: '12px 14px', borderRadius: 10, marginBottom: 18, fontSize: 13, 
+                textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10 
+              }}>
+                <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                <span>{error}</span>
               </div>
             )}
-          </div>
 
-          <button 
-            type="submit" 
-            className="mm-btn-primary" 
-            style={{ marginTop: 6, width: '100%', padding: '14px', fontSize: 15, fontWeight: 700, borderRadius: 10, minHeight: 48 }}
-          >
-            {isSignUp ? "Create Customer Account" : "Sign In to Portal"}
-          </button>
-        </form>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Full Name (Sign Up only) */}
+              {isSignUp && (
+                <div style={{ textAlign: 'left' }}>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, fontSize: 13, color: 'var(--text-dark)' }}>
+                    Full Name *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input 
+                      type="text" 
+                      className="mm-input" 
+                      placeholder="e.g. Ramesh Kumar" 
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      style={{ paddingLeft: 40 }}
+                      required
+                    />
+                    <User size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                  </div>
+                </div>
+              )}
 
-        {/* Switch between Sign In / Sign Up */}
-        <div style={{ marginTop: 22, fontSize: 14, color: 'var(--text-gray)' }}>
-          {isSignUp ? (
-            <>Already have an account? <button type="button" onClick={() => { setIsSignUp(false); setError(''); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer' }}>Sign In</button></>
-          ) : (
-            <>Are you a customer? <button type="button" onClick={() => { setIsSignUp(true); setError(''); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer' }}>Create Account</button></>
-          )}
-        </div>
+              {/* Username, Email or Phone */}
+              <div style={{ textAlign: 'left' }}>
+                <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, fontSize: 13, color: 'var(--text-dark)' }}>
+                  {isSignUp ? "Email Address *" : "Username, Email or Phone *"}
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={isSignUp ? "email" : "text"}
+                    inputMode={isSignUp ? "email" : "text"}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    autoComplete="username"
+                    className="mm-input" 
+                    placeholder={isSignUp ? "you@example.com" : "Enter username, email or mobile"} 
+                    value={loginId}
+                    onChange={e => setLoginId(e.target.value)}
+                    style={{ paddingLeft: 40 }}
+                    required
+                  />
+                  <Mail size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                </div>
+              </div>
+
+              {/* Phone (Sign Up only) */}
+              {isSignUp && (
+                <div style={{ textAlign: 'left' }}>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, fontSize: 13, color: 'var(--text-dark)' }}>
+                    Phone Number
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input 
+                      type="tel" 
+                      inputMode="numeric"
+                      className="mm-input" 
+                      placeholder="10-digit mobile number" 
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      style={{ paddingLeft: 40 }}
+                    />
+                    <Phone size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Password */}
+              <div style={{ textAlign: 'left' }}>
+                <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, fontSize: 13, color: 'var(--text-dark)' }}>
+                  Password *
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    autoComplete={isSignUp ? "new-password" : "current-password"}
+                    className="mm-input" 
+                    placeholder="••••••••" 
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    style={{ paddingLeft: 40, paddingRight: 44 }}
+                    required
+                  />
+                  <Lock size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ 
+                      position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 6 
+                    }}
+                    aria-label="Toggle password visibility"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                className="mm-btn-primary" 
+                style={{ marginTop: 8, width: '100%', padding: '14px', fontSize: 15, fontWeight: 700, borderRadius: 10, minHeight: 48 }}
+              >
+                {isSignUp ? "Create Customer Account" : "Sign In to Portal"}
+              </button>
+            </form>
+
+            {/* Switch between Sign In / Sign Up */}
+            <div style={{ marginTop: 20, fontSize: 14, color: 'var(--text-gray)' }}>
+              {isSignUp ? (
+                <>Already have an account? <button type="button" onClick={() => { setIsSignUp(false); setError(''); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer' }}>Sign In</button></>
+              ) : (
+                <>Are you a customer? <button type="button" onClick={() => { setIsSignUp(true); setError(''); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer' }}>Create Account</button></>
+              )}
+            </div>
+          </>
+        )}
 
       </div>
     </div>

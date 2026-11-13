@@ -47,8 +47,8 @@ export default function AdminView({
   });
 
   const [adminCredForm, setAdminCredForm] = useState({
-    email: adminAuth?.email || "admin@siyasitalstore.com",
-    password: adminAuth?.password || "admin@siyasital123",
+    email: adminAuth?.email || "",
+    password: adminAuth?.password || "",
     name: adminAuth?.name || "Master Admin"
   });
   const [adminCredMsg, setAdminCredMsg] = useState("");
@@ -990,8 +990,8 @@ export default function AdminView({
                 type="button" 
                 onClick={() => {
                   setAdminCredForm({
-                    email: adminAuth?.email || "admin@siyasitalstore.com",
-                    password: adminAuth?.password || "admin@siyasital123",
+                    email: adminAuth?.email || "",
+                    password: adminAuth?.password || "",
                     name: adminAuth?.name || "Master Admin"
                   });
                   setAdminCredMsg("");
@@ -1038,7 +1038,7 @@ export default function AdminView({
                   </span>
                 </div>
                 <div style={{ fontSize: 13, color: '#94a3b8', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  <span><strong>Login Email:</strong> {adminAuth?.email || "admin@siyasitalstore.com"}</span>
+                  <span><strong>Login Email:</strong> {adminAuth?.email || "Configured in Database"}</span>
                   <span><strong>Access:</strong> Full Store, Financials, Inventory & Managers</span>
                 </div>
               </div>
@@ -1048,8 +1048,8 @@ export default function AdminView({
               type="button"
               onClick={() => {
                 setAdminCredForm({
-                  email: adminAuth?.email || "admin@siyasitalstore.com",
-                  password: adminAuth?.password || "admin@siyasital123",
+                  email: adminAuth?.email || "",
+                  password: adminAuth?.password || "",
                   name: adminAuth?.name || "Master Admin"
                 });
                 setAdminCredMsg("");
