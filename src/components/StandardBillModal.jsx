@@ -53,7 +53,17 @@ export default function StandardBillModal({ order, onClose, isAdmin = false, onE
   };
 
   const handleWhatsAppShare = () => {
-    const cleanPhone = (order.phone || "").replace(/[^0-9]/g, "");
+    // If Admin/Manager, send to customer's phone if known; if customer, send to Store WhatsApp 9288255410
+    let targetPhone = "";
+    if (isAdmin) {
+      const cleanPhone = (order.phone || "").replace(/[^0-9]/g, "");
+      if (cleanPhone && cleanPhone !== "-") {
+        targetPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+      }
+    } else {
+      targetPhone = STORE_CONFIG.whatsappNumber;
+    }
+
     let text = `🧾 *Tax Invoice / Cash Memo - ${STORE_CONFIG.name}*\n`;
     text += `*Bill No:* #${order.id}\n`;
     text += `*Date & Time:* ${order.date || "Today"} • ${order.time || ""}\n`;
@@ -76,8 +86,8 @@ export default function StandardBillModal({ order, onClose, isAdmin = false, onE
     text += `*Pickup Notice:* Please verify items at the pickup counter.\n`;
     text += `Thank you for shopping with us! Have a great day 🙏\n${STORE_CONFIG.name}`;
 
-    if (cleanPhone && cleanPhone !== "-") {
-      window.open(`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(text)}`, "_blank");
+    if (targetPhone) {
+      window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(text)}`, "_blank");
     } else {
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
     }

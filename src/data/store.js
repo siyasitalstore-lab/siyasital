@@ -3,8 +3,8 @@ export const CATEGORIES = ["Chips & Namkeen", "Bakery & Cakes", "Cold Drinks", "
 export const STORE_CONFIG = {
   name: "Siyasital Store",
   tagline: "Your Trusted Neighbourhood Grocery Store 🛍️",
-  whatsappNumber: "919876543210",
-  displayPhone: "+91 98765 43210",
+  whatsappNumber: "919288255410",
+  displayPhone: "+91 92882 55410",
   upiId: "siyasitalstore@upi",
   address: "Shop No. 12, Main Market Road, Siyasital",
   pickupTime: "10-15 Mins",
@@ -150,7 +150,10 @@ export function formatWhatsAppOrderMessage({ id, customer, phone, items = [], su
 }
 
 export function getWhatsAppUrl(phone, text) {
-  const cleanPhone = (phone || STORE_CONFIG.whatsappNumber).replace(/[^0-9]/g, "");
+  let cleanPhone = (phone || STORE_CONFIG.whatsappNumber).replace(/[^0-9]/g, "");
+  if (cleanPhone.length === 10) {
+    cleanPhone = `91${cleanPhone}`;
+  }
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
 }
 
