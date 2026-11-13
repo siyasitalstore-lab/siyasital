@@ -80,58 +80,65 @@ export default function DashboardLayout({
       </div>
 
       {/* Main Container */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: '100vh', position: 'relative' }}>
         
-        {/* Desktop Sidebar */}
+        {/* Desktop Sidebar (Fixed viewport height & sticky pinned so length never fluctuates with page content) */}
         <aside 
           className="desktop-only" 
           style={{ 
-            width: 270, 
+            width: 260, 
+            height: '100vh',
+            maxHeight: '100vh',
+            position: 'sticky',
+            top: 0,
             background: '#0f172a', 
             color: 'white', 
             flexDirection: 'column',
-            flexShrink: 0
+            flexShrink: 0,
+            zIndex: 40,
+            borderRight: '1px solid rgba(255,255,255,0.08)'
           }}
         >
           {/* Brand */}
-          <div style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
             <div style={{ background: 'var(--primary)', color: 'white', padding: 8, borderRadius: 12, display: 'flex' }}>
-              <ShieldCheck size={24} />
+              <ShieldCheck size={22} />
             </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 18 }}>SiyasitalStore</div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>{title} Panel</div>
+              <div style={{ fontWeight: 800, fontSize: 17 }}>SiyasitalStore</div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>{title} Panel</div>
             </div>
           </div>
 
           {/* User Info */}
-          <div style={{ padding: 20, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10 }}>Logged In As</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700 }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 8 }}>Logged In As</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700 }}>
                 {user?.name?.charAt(0) || 'U'}
               </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{user?.name}</div>
-                <div style={{ fontSize: 12, color: '#cbd5e1', textTransform: 'capitalize' }}>{user?.role}</div>
+              <div style={{ overflow: 'hidden' }}>
+                <div style={{ fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{user?.name}</div>
+                <div style={{ fontSize: 11, color: '#cbd5e1', textTransform: 'capitalize' }}>{user?.role}</div>
               </div>
             </div>
           </div>
 
           {/* Navigation Links */}
-          <div style={{ padding: '20px 16px', flex: 1, overflowY: 'auto' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, paddingLeft: 8 }}>Menu</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ padding: '14px 12px', flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 8 }}>Menu</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {sidebarItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => onTabChange(item.id)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
                     background: activeTab === item.id ? 'var(--primary)' : 'transparent',
                     color: activeTab === item.id ? 'white' : '#cbd5e1',
-                    fontWeight: 600, fontSize: 14, transition: 'all 0.15s',
-                    textAlign: 'left'
+                    fontWeight: 600, fontSize: 13, transition: 'all 0.15s',
+                    textAlign: 'left',
+                    width: '100%'
                   }}
                 >
                   {item.icon}
@@ -142,24 +149,24 @@ export default function DashboardLayout({
           </div>
 
           {/* Bottom Actions */}
-          <div style={{ padding: 16, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ padding: '14px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0, marginTop: 'auto' }}>
             <button 
               onClick={toggleTheme}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}
             >
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />} Toggle Theme
+              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />} Toggle Theme
             </button>
             <button 
               onClick={() => navigate('/')}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}
             >
-              <Store size={16} /> Back to Store
+              <Store size={15} /> Back to Store
             </button>
             <button 
               onClick={onLogout}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8, background: '#fef2f2', color: '#ef4444', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, background: '#fef2f2', color: '#ef4444', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}
             >
-              <LogOut size={16} /> Logout
+              <LogOut size={15} /> Logout
             </button>
           </div>
         </aside>
@@ -274,7 +281,7 @@ export default function DashboardLayout({
         </div>
 
         {/* Main Content Area */}
-        <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', background: '#f8fafc' }}>
+        <main style={{ flex: 1, minWidth: 0, minHeight: '100vh', background: '#f8fafc' }}>
           {children}
         </main>
 
