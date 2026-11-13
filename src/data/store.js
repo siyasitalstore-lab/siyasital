@@ -222,6 +222,69 @@ export function normalizeDate(d) {
   return str;
 }
 
+export function parseDateToMidnight(dStr, createdAt) {
+  if (createdAt) {
+    const cd = new Date(createdAt);
+    if (!isNaN(cd.getTime())) {
+      cd.setHours(0, 0, 0, 0);
+      return cd;
+    }
+  }
+  if (!dStr) {
+    const n = new Date();
+    n.setHours(0, 0, 0, 0);
+    return n;
+  }
+  const s = String(dStr).trim();
+  if (s.toLowerCase() === "today") {
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return t;
+  }
+  if (s.toLowerCase() === "yesterday") {
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    y.setHours(0, 0, 0, 0);
+    return y;
+  }
+  if (s.includes("-") && s.length >= 10 && s.indexOf("-") === 4) {
+    const parts = s.split("-");
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    const parsed = new Date(y, m, d);
+    if (!isNaN(parsed.getTime())) {
+      parsed.setHours(0, 0, 0, 0);
+      return parsed;
+    }
+  }
+  const parts = s.split(/[\/\-]/);
+  if (parts.length === 3) {
+    let day = parseInt(parts[0], 10);
+    let month = parseInt(parts[1], 10) - 1;
+    let year = parseInt(parts[2], 10);
+    if (year < 100) year += 2000;
+    if (parts[0].length === 4) {
+      year = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10) - 1;
+      day = parseInt(parts[2], 10);
+    }
+    const parsed = new Date(year, month, day);
+    if (!isNaN(parsed.getTime())) {
+      parsed.setHours(0, 0, 0, 0);
+      return parsed;
+    }
+  }
+  const standard = new Date(s);
+  if (!isNaN(standard.getTime())) {
+    standard.setHours(0, 0, 0, 0);
+    return standard;
+  }
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return now;
+}
+
 /**
  * Calculate full statement for a customer from linked orders, manual entries, and payments
  */

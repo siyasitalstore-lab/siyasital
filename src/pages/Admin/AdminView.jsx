@@ -6,7 +6,7 @@ import {
   ArrowUpRight, CheckCircle, AlertTriangle, Layers, Calendar, Filter, BookOpen, FileText,
   ShieldCheck, Key, Lock, Eye, EyeOff, UserCheck, UserX
 } from "lucide-react";
-import { LOW_STOCK, money, orderTotal, CATEGORIES, EXPENSE_CATEGORIES } from "../../data/store";
+import { LOW_STOCK, money, orderTotal, CATEGORIES, EXPENSE_CATEGORIES, parseDateToMidnight } from "../../data/store";
 import DashboardLayout from "../../components/DashboardLayout";
 import DailyBillsView from "../../components/DailyBillsView";
 import CustomerKhataView from "../../components/CustomerKhataView";
@@ -24,6 +24,15 @@ export default function AdminView({
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
   const [expenseSearchQuery, setExpenseSearchQuery] = useState("");
   const [selectedExpenseCat, setSelectedExpenseCat] = useState("ALL");
+
+  // Analytics Date Range State: "1D", "7D", "1M", "1Y", "ALL", "CUSTOM"
+  const [analyticsRange, setAnalyticsRange] = useState("ALL");
+  const [customRangeStart, setCustomRangeStart] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [customRangeEnd, setCustomRangeEnd] = useState(() => new Date().toISOString().split('T')[0]);
   
   // Modals state
   const [showProductModal, setShowProductModal] = useState(false);
@@ -53,31 +62,84 @@ export default function AdminView({
   });
   const [adminCredMsg, setAdminCredMsg] = useState("");
 
-  // Deep Analytics Calculations
-  const completedOrders = useMemo(() => orders.filter(o => o.status === 'Completed'), [orders]);
-  
+  // Calculate Date Bounds for Selected Analytics Range
+  const analyticsDateBounds = useMemo(() => {
+    const now = new Date();
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    let start = new Date(0); // Epoch for ALL
+    let label = "All Time Record";
+
+    if (analyticsRange === "1D") {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      label = "Today's Overview (1 Day)";
+    } else if (analyticsRange === "7D") {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
+      label = "Last 7 Days Overview";
+    } else if (analyticsRange === "1M") {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29, 0, 0, 0, 0);
+      label = "Last 30 Days (1 Month)";
+    } else if (analyticsRange === "1Y") {
+      start = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      label = "Last 365 Days (1 Year)";
+    } else if (analyticsRange === "CUSTOM") {
+      if (customRangeStart) {
+        const [sy, sm, sd] = customRangeStart.split('-').map(Number);
+        start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+      }
+      if (customRangeEnd) {
+        const [ey, em, ed] = customRangeEnd.split('-').map(Number);
+        end.setFullYear(ey, em - 1, ed);
+        end.setHours(23, 59, 59, 999);
+      }
+      label = `Custom Period (${customRangeStart} to ${customRangeEnd})`;
+    }
+
+    return { start, end, label };
+  }, [analyticsRange, customRangeStart, customRangeEnd]);
+
+  // Date Check Helper for Analytics
+  const isInAnalyticsRange = (dateStr, createdAt) => {
+    if (analyticsRange === "ALL") return true;
+    const d = parseDateToMidnight(dateStr, createdAt);
+    return d >= analyticsDateBounds.start && d <= analyticsDateBounds.end;
+  };
+
+  // Filtered Orders & Expenses for Selected Range
+  const rangeOrders = useMemo(() => {
+    return orders.filter(o => isInAnalyticsRange(o.date, o.created_at));
+  }, [orders, analyticsRange, analyticsDateBounds]);
+
+  const rangeCompletedOrders = useMemo(() => {
+    return rangeOrders.filter(o => o.status === 'Completed');
+  }, [rangeOrders]);
+
+  const rangeExpenses = useMemo(() => {
+    return expenses.filter(e => isInAnalyticsRange(e.date, e.created_at));
+  }, [expenses, analyticsRange, analyticsDateBounds]);
+
+  // Financial Calculations for Selected Range
   const totalRevenue = useMemo(() => {
-    return completedOrders.reduce((sum, o) => sum + (o.total || orderTotal(o)), 0);
-  }, [completedOrders]);
+    return rangeCompletedOrders.reduce((sum, o) => sum + (o.total || orderTotal(o)), 0);
+  }, [rangeCompletedOrders]);
 
   const totalExpenses = useMemo(() => {
-    return expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-  }, [expenses]);
+    return rangeExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  }, [rangeExpenses]);
 
   const netProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0;
   
-  const activeOrders = useMemo(() => orders.filter(o => o.status === 'New' || o.status === 'Preparing' || o.status === 'Ready').length, [orders]);
+  const activeOrders = useMemo(() => rangeOrders.filter(o => o.status === 'New' || o.status === 'Preparing' || o.status === 'Ready').length, [rangeOrders]);
   const lowStockCount = useMemo(() => products.filter(p => p.stock <= LOW_STOCK).length, [products]);
-  const averageOrderValue = completedOrders.length > 0 ? Math.round(totalRevenue / completedOrders.length) : 0;
+  const averageOrderValue = rangeCompletedOrders.length > 0 ? Math.round(totalRevenue / rangeCompletedOrders.length) : 0;
 
-  // Payment Breakdown
+  // Payment Breakdown for Selected Range
   const paymentAnalytics = useMemo(() => {
     let upiTotal = 0, upiCount = 0;
     let cashTotal = 0, cashCount = 0;
     let khataTotal = 0, khataCount = 0;
 
-    completedOrders.forEach(o => {
+    rangeCompletedOrders.forEach(o => {
       const amt = o.total || orderTotal(o);
       if (o.payment === 'upi') {
         upiTotal += amt;
@@ -99,12 +161,97 @@ export default function AdminView({
       cash: { total: cashTotal, count: cashCount, percent: totalRevenue > 0 ? Math.round((cashTotal / totalRevenue) * 100) : 0 },
       khata: { total: khataTotal, count: khataCount, percent: totalRevenue > 0 ? Math.round((khataTotal / totalRevenue) * 100) : 0 },
     };
-  }, [completedOrders, totalRevenue]);
+  }, [rangeCompletedOrders, totalRevenue]);
 
-  // Category-wise Revenue Breakdown
+  // Store Credit / Dues Analytics for Selected Range (Udhaar Diya vs Vasool Hua)
+  const dueAnalytics = useMemo(() => {
+    let creditSalesTotal = 0;
+    let creditSalesCount = 0;
+    let manualDueTotal = 0;
+    let manualDueCount = 0;
+    let paymentsCollectedTotal = 0;
+    let paymentsCollectedCount = 0;
+    const recentDueLogs = [];
+
+    // 1. Credit orders in this period
+    rangeOrders.forEach(o => {
+      if (o.payment === 'khata') {
+        const amt = o.total || orderTotal(o);
+        creditSalesTotal += amt;
+        creditSalesCount++;
+        recentDueLogs.push({
+          id: o.id,
+          customer: o.customer || "Walk-in Customer",
+          type: "CREDIT_ORDER",
+          label: "Order on Credit (Udhaar Diya)",
+          amount: amt,
+          date: o.date || "Today",
+          isPlus: true
+        });
+      }
+    });
+
+    // 2. Customers ledger activities in this period
+    customers.forEach(c => {
+      // Manual credit additions
+      (c.manualEntries || []).forEach(m => {
+        if (isInAnalyticsRange(m.date, m.created_at)) {
+          const amt = Number(m.amount) || 0;
+          manualDueTotal += amt;
+          manualDueCount++;
+          recentDueLogs.push({
+            id: m.id || `m_${Math.random()}`,
+            customer: c.name,
+            type: "MANUAL_DUE",
+            label: m.note || "Khata Purchase (Udhaar)",
+            amount: amt,
+            date: m.date || "Today",
+            isPlus: true
+          });
+        }
+      });
+
+      // Payments received (Dues collected)
+      (c.paymentHistory || []).forEach(p => {
+        if (isInAnalyticsRange(p.date, p.created_at)) {
+          const amt = Number(p.amount) || 0;
+          paymentsCollectedTotal += amt;
+          paymentsCollectedCount++;
+          recentDueLogs.push({
+            id: p.id || `p_${Math.random()}`,
+            customer: c.name,
+            type: "PAYMENT_COLLECTED",
+            label: `Jama Kiya (${p.method || 'Cash/UPI'})`,
+            amount: amt,
+            date: p.date || "Today",
+            isPlus: false
+          });
+        }
+      });
+    });
+
+    const totalCreditGiven = creditSalesTotal + manualDueTotal;
+    const totalCreditGivenCount = creditSalesCount + manualDueCount;
+    const netDueBalanceChange = totalCreditGiven - paymentsCollectedTotal;
+
+    return {
+      totalCreditGiven,
+      totalCreditGivenCount,
+      creditSalesTotal,
+      creditSalesCount,
+      manualDueTotal,
+      manualDueCount,
+      paymentsCollectedTotal,
+      paymentsCollectedCount,
+      netDueBalanceChange,
+      recentDueLogs: recentDueLogs.slice(0, 6)
+    };
+  }, [rangeOrders, customers, analyticsRange, analyticsDateBounds]);
+
+  // Category-wise Revenue Breakdown for Selected Range
   const categoryAnalytics = useMemo(() => {
     const map = {};
-    completedOrders.forEach(o => {
+    rangeCompletedOrders.forEach(o => {
       (o.items || []).forEach(item => {
         const prod = products.find(p => p.id === (item.productId || item.id));
         const cat = prod?.category || "Other";
@@ -120,12 +267,12 @@ export default function AdminView({
     })).sort((a, b) => b.revenue - a.revenue);
 
     return arr;
-  }, [completedOrders, products, totalRevenue]);
+  }, [rangeCompletedOrders, products, totalRevenue]);
 
-  // Top Selling Products Leaderboard
+  // Top Selling Products Leaderboard for Selected Range
   const topProducts = useMemo(() => {
     const map = {};
-    completedOrders.forEach(o => {
+    rangeCompletedOrders.forEach(o => {
       (o.items || []).forEach(item => {
         const key = item.baseName || item.name;
         if (!map[key]) {
@@ -136,11 +283,11 @@ export default function AdminView({
       });
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-  }, [completedOrders]);
+  }, [rangeCompletedOrders]);
 
-  // Order Fulfillment Stats
-  const parchiOrderCount = useMemo(() => orders.filter(o => o.isParchi).length, [orders]);
-  const regularOrderCount = orders.length - parchiOrderCount;
+  // Order Fulfillment Stats for Selected Range
+  const parchiOrderCount = useMemo(() => rangeOrders.filter(o => o.isParchi).length, [rangeOrders]);
+  const regularOrderCount = rangeOrders.length - parchiOrderCount;
 
   // Product Form State
   const [productForm, setProductForm] = useState({ 
@@ -465,7 +612,7 @@ export default function AdminView({
       {tab === "stats" && (
         <div style={{ animation: 'fadeIn 0.3s ease' }}>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 14 }}>
             <div>
               <h2 style={{ fontSize: 28, margin: '0 0 6px 0', color: 'var(--text-dark)', fontWeight: 800 }}>Store Financials & Analytics</h2>
               <span style={{ fontSize: 14, color: 'var(--text-gray)' }}>Complete sales report, revenue, expenses and net profit overview</span>
@@ -479,14 +626,80 @@ export default function AdminView({
             </button>
           </div>
 
+          {/* Time Range Filter Toolbar */}
+          <div className="mm-block" style={{ padding: '16px 20px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-gray)', display: 'flex', alignItems: 'center', gap: 6, marginRight: 4 }}>
+                <Calendar size={16} color="var(--primary)" /> Time Period:
+              </span>
+              {[
+                { id: "1D", label: "1 Day (Today)" },
+                { id: "7D", label: "7 Days" },
+                { id: "1M", label: "1 Month (30D)" },
+                { id: "1Y", label: "1 Year" },
+                { id: "ALL", label: "All Time" },
+                { id: "CUSTOM", label: "📅 Custom Range" }
+              ].map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setAnalyticsRange(p.id)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    border: analyticsRange === p.id ? '1px solid var(--primary)' : '1px solid var(--border)',
+                    background: analyticsRange === p.id ? 'var(--primary)' : 'white',
+                    color: analyticsRange === p.id ? 'white' : 'var(--text-dark)',
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Date Pickers */}
+            {analyticsRange === "CUSTOM" && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f8fafc', padding: '6px 12px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-gray)' }}>From:</span>
+                  <input 
+                    type="date" 
+                    className="mm-input" 
+                    value={customRangeStart} 
+                    onChange={e => setCustomRangeStart(e.target.value)}
+                    style={{ padding: '4px 8px', fontSize: 12, width: 130 }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-gray)' }}>To:</span>
+                  <input 
+                    type="date" 
+                    className="mm-input" 
+                    value={customRangeEnd} 
+                    onChange={e => setCustomRangeEnd(e.target.value)}
+                    style={{ padding: '4px 8px', fontSize: 12, width: 130 }}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'rgba(79, 70, 229, 0.08)', padding: '6px 14px', borderRadius: 20 }}>
+              Showing: <strong>{analyticsDateBounds.label}</strong>
+            </div>
+          </div>
+
           {/* Key 4 Hero Cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20, marginBottom: 32 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20, marginBottom: 24 }}>
             
             {/* 1. Gross Revenue */}
             <div className="mm-card" style={{ padding: 24, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', position: 'relative', overflow: 'hidden' }}>
               <div style={{ color: "rgba(255,255,255,0.85)", marginBottom: 10, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}><IndianRupee size={18}/> Gross Sales Revenue</span>
-                <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>{completedOrders.length} Paid</span>
+                <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>{rangeCompletedOrders.length} Paid</span>
               </div>
               <div style={{ fontSize: 36, fontWeight: 800 }}>{money(totalRevenue)}</div>
               <div style={{ fontSize: 12, marginTop: 8, opacity: 0.9 }}>Avg Order Value: <strong>{money(averageOrderValue)}</strong></div>
@@ -496,7 +709,7 @@ export default function AdminView({
             <div className="mm-card" style={{ padding: 24, background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', border: 'none' }}>
               <div style={{ color: "rgba(255,255,255,0.85)", marginBottom: 10, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}><Receipt size={18}/> Total Store Expenses</span>
-                <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>{expenses.length} Records</span>
+                <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>{rangeExpenses.length} Records</span>
               </div>
               <div style={{ fontSize: 36, fontWeight: 800 }}>{money(totalExpenses)}</div>
               <div style={{ fontSize: 12, marginTop: 8, opacity: 0.9 }}>Rent, Bills, Staff & Supplies</div>
@@ -524,17 +737,139 @@ export default function AdminView({
             {/* 4. Total Orders & Fulfillment */}
             <div className="mm-card" style={{ padding: 24 }}>
               <div style={{ color: "var(--text-gray)", marginBottom: 10, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 6 }}><ShoppingCart size={18} color="#4f46e5"/> All Orders</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}><ShoppingCart size={18} color="#4f46e5"/> Orders in Period</span>
                 <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
-                  {activeOrders} Active Now
+                  {activeOrders} Active
                 </span>
               </div>
-              <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--text-dark)' }}>{orders.length}</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--text-dark)' }}>{rangeOrders.length}</div>
               <div style={{ fontSize: 12, color: 'var(--text-gray)', marginTop: 8 }}>
                 Online Catalog: <strong>{regularOrderCount}</strong> • Grocery Slips: <strong>{parchiOrderCount}</strong>
               </div>
             </div>
 
+          </div>
+
+          {/* Due & Khata Store Credit Analytics Block */}
+          <div className="mm-block" style={{ padding: 24, marginBottom: 24, borderLeft: '4px solid #f59e0b' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, borderBottom: '1px solid var(--border)', paddingBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-dark)' }}>
+                  <BookOpen size={18} color="#d97706" /> Store Credit & Dues Activity (Khata Analytics)
+                </h3>
+                <span style={{ fontSize: 12, color: 'var(--text-gray)' }}>
+                  Detailed tracking of credit issued vs payments recovered for <strong>{analyticsDateBounds.label}</strong>
+                </span>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setTab("customers")}
+                style={{ background: '#fef3c7', border: '1px solid #fde68a', color: '#92400e', padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                Open Full Customer Ledger →
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 18 }}>
+              {/* Credit Sales Given */}
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#991b1b', textTransform: 'uppercase' }}>
+                    📕 Naya Udhaar Diya (Credit Issued)
+                  </span>
+                  <span style={{ background: '#fee2e2', color: '#b91c1c', fontSize: 11, fontWeight: 800, padding: '2px 6px', borderRadius: 99 }}>
+                    +{dueAnalytics.totalCreditGivenCount} Bills
+                  </span>
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#dc2626' }}>
+                  {money(dueAnalytics.totalCreditGiven)}
+                </div>
+                <div style={{ fontSize: 11, color: '#7f1d1d', marginTop: 4 }}>
+                  Store Pickup Bills: {money(dueAnalytics.creditSalesTotal)} • Manual Khata: {money(dueAnalytics.manualDueTotal)}
+                </div>
+              </div>
+
+              {/* Payments Received / Settled */}
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
+                    📗 Udhaar Vasooli (Payments Received)
+                  </span>
+                  <span style={{ background: '#dcfce7', color: '#15803d', fontSize: 11, fontWeight: 800, padding: '2px 6px', borderRadius: 99 }}>
+                    +{dueAnalytics.paymentsCollectedCount} Receipts
+                  </span>
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#16a34a' }}>
+                  {money(dueAnalytics.paymentsCollectedTotal)}
+                </div>
+                <div style={{ fontSize: 11, color: '#14532d', marginTop: 4 }}>
+                  Collected at counter via Cash & UPI payments
+                </div>
+              </div>
+
+              {/* Net Credit Change in this Period */}
+              <div style={{ 
+                background: dueAnalytics.netDueBalanceChange > 0 ? '#fffbeb' : '#f0fdf4', 
+                border: `1px solid ${dueAnalytics.netDueBalanceChange > 0 ? '#fde68a' : '#bbf7d0'}`, 
+                borderRadius: 12, padding: 16 
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: dueAnalytics.netDueBalanceChange > 0 ? '#92400e' : '#166534', textTransform: 'uppercase' }}>
+                    ⚖️ Net Khata Flow (Is Period Ka)
+                  </span>
+                  <span style={{ 
+                    background: dueAnalytics.netDueBalanceChange > 0 ? '#fef3c7' : '#dcfce7', 
+                    color: dueAnalytics.netDueBalanceChange > 0 ? '#b45309' : '#15803d', 
+                    fontSize: 11, fontWeight: 800, padding: '2px 6px', borderRadius: 99 
+                  }}>
+                    {dueAnalytics.netDueBalanceChange > 0 ? 'Dues Increased' : 'Dues Reduced'}
+                  </span>
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: dueAnalytics.netDueBalanceChange > 0 ? '#d97706' : '#16a34a' }}>
+                  {dueAnalytics.netDueBalanceChange > 0 ? `+${money(dueAnalytics.netDueBalanceChange)}` : money(dueAnalytics.netDueBalanceChange)}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-gray)', marginTop: 4 }}>
+                  {dueAnalytics.netDueBalanceChange > 0 
+                    ? "Is period me vasooli se zyaada udhaar diya gaya" 
+                    : "Is period me diye gaye udhaar se zyaada vasooli hui"}
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Credit / Payment Activity in this period */}
+            {dueAnalytics.recentDueLogs.length > 0 && (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-gray)', marginBottom: 8, textTransform: 'uppercase' }}>
+                  Recent Credit Activity in this Period:
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {dueAnalytics.recentDueLogs.map((log, index) => (
+                    <div 
+                      key={`${log.id}_${index}`}
+                      style={{ 
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                        padding: '8px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 12 
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ 
+                          width: 8, height: 8, borderRadius: '50%', 
+                          background: log.isPlus ? '#ef4444' : '#10b981' 
+                        }}></span>
+                        <span style={{ fontWeight: 700, color: 'var(--text-dark)' }}>{log.customer}</span>
+                        <span style={{ color: 'var(--text-gray)' }}>• {log.label}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ color: 'var(--text-gray)', fontSize: 11 }}>{log.date}</span>
+                        <span style={{ fontWeight: 800, color: log.isPlus ? '#dc2626' : '#16a34a' }}>
+                          {log.isPlus ? `+${money(log.amount)} (Due)` : `-${money(log.amount)} (Paid)`}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Middle Row: Payment Mode Breakdown & Category Performance */}
