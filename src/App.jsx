@@ -5,7 +5,7 @@ import { KEYS, DEFAULT_PRODUCTS, DEFAULT_STAFF, DEFAULT_BANNERS, DEFAULT_EXPENSE
 import { 
   getSupabaseConfig,
   fetchSupabaseProducts, upsertSupabaseProduct,
-  fetchSupabaseOrders, upsertSupabaseOrder,
+  fetchSupabaseOrders, upsertSupabaseOrder, deleteSupabaseOrder,
   fetchSupabaseCustomers, upsertSupabaseCustomer, deleteSupabaseCustomer,
   fetchSupabaseExpenses, upsertSupabaseExpense,
   fetchSupabaseStaff, upsertSupabaseStaff, deleteSupabaseStaff
@@ -162,10 +162,12 @@ export default function App() {
   };
 
   const updateOrders = async (next) => {
+    const removed = orders.filter(old => !next.some(n => n.id === old.id));
     setOrders(next);
     if (!(await persist(KEYS.orders, next))) setSyncError(true);
-    if (getSupabaseConfig().isConfigured && next.length > 0) {
-      next.slice(0, 5).forEach(o => upsertSupabaseOrder(o).catch(console.error));
+    if (getSupabaseConfig().isConfigured) {
+      removed.forEach(r => deleteSupabaseOrder(r.id).catch(console.error));
+      next.forEach(o => upsertSupabaseOrder(o).catch(console.error));
     }
   };
 

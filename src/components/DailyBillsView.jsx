@@ -2,18 +2,33 @@ import React, { useState, useMemo } from "react";
 import { 
   Receipt, Search, Calendar, Filter, Clock, User, Phone, CheckCircle, 
   ChevronRight, Eye, Printer, MessageSquare, ArrowUpRight, DollarSign,
-  ShoppingBag, X, FileText, Check, AlertCircle, Sparkles, Store
+  ShoppingBag, X, FileText, Check, AlertCircle, Sparkles, Store,
+  Edit3, Trash2, Plus, Minus, Save, AlertTriangle
 } from "lucide-react";
 import { money, orderTotal, STORE_CONFIG, normalizeDate } from "../data/store";
 import StandardBillModal from "./StandardBillModal";
 
-export default function DailyBillsView({ orders = [], products = [], updateOrders, isManager = false }) {
+export default function DailyBillsView({ 
+  orders = [], 
+  products = [], 
+  updateOrders, 
+  isManager = false, 
+  isAdmin = false, 
+  user = null 
+}) {
+  const canAdminManage = Boolean(isAdmin && !isManager);
+
   const [selectedDateFilter, setSelectedDateFilter] = useState("TODAY"); // "TODAY", "ALL", "CUSTOM"
   const [customDate, setCustomDate] = useState(new Date().toISOString().split("T")[0]);
   const [searchQuery, setSearchQuery] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("ALL"); // "ALL", "upi", "cod", "khata"
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [activeBillModal, setActiveBillModal] = useState(null);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [deletingOrder, setDeletingOrder] = useState(null);
+  const [toastMsg, setToastMsg] = useState("");
+  const [selectedAddProductId, setSelectedAddProductId] = useState("");
 
   // Today formatted string
   const todayFormatted = useMemo(() => {
@@ -140,6 +155,128 @@ export default function DailyBillsView({ orders = [], products = [], updateOrder
 
   const printBill = (order) => {
     window.print();
+  };
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(""), 3500);
+  };
+
+  const startEditOrder = (order) => {
+    setEditingOrder(order);
+    setEditForm({
+      id: order.id,
+      customer: order.customer || "",
+      phone: order.phone || "",
+      payment: (order.payment || "cash").toLowerCase(),
+      status: order.status || "Completed",
+      date: order.date || todayFormatted,
+      time: order.time || "",
+      notes: order.notes || "",
+      isParchi: Boolean(order.isParchi),
+      parchiText: order.parchiText || "",
+      items: (order.items || []).map(i => ({
+        name: i.name || "Item",
+        qty: Number(i.qty) || 1,
+        price: Number(i.price) || 0,
+        unit: i.unit || "",
+        emoji: i.emoji || "📦"
+      })),
+      manualTotal: Number(order.total) || orderTotal(order)
+    });
+  };
+
+  const handleUpdateItem = (index, field, value) => {
+    if (!editForm) return;
+    const updatedItems = [...editForm.items];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      [field]: field === "qty" || field === "price" ? Math.max(0, Number(value) || 0) : value
+    };
+    setEditForm({ ...editForm, items: updatedItems });
+  };
+
+  const handleRemoveItem = (index) => {
+    if (!editForm) return;
+    const updatedItems = editForm.items.filter((_, idx) => idx !== index);
+    setEditForm({ ...editForm, items: updatedItems });
+  };
+
+  const handleAddItem = (productId) => {
+    if (!productId || !editForm) return;
+    const prod = products.find(p => String(p.id) === String(productId));
+    if (!prod) return;
+    const newItem = {
+      name: prod.name,
+      qty: 1,
+      price: Number(prod.price) || 0,
+      unit: prod.unit || "",
+      emoji: prod.emoji || "📦"
+    };
+    setEditForm({ ...editForm, items: [...editForm.items, newItem] });
+    setSelectedAddProductId("");
+  };
+
+  const handleAddCustomItem = () => {
+    if (!editForm) return;
+    const newItem = {
+      name: "Custom Grocery Item",
+      qty: 1,
+      price: 10,
+      unit: "pc",
+      emoji: "📦"
+    };
+    setEditForm({ ...editForm, items: [...editForm.items, newItem] });
+  };
+
+  const handleSaveEdit = async (e) => {
+    if (e) e.preventDefault();
+    if (!canAdminManage || !editForm || !editingOrder) return;
+    if (!editForm.customer.trim()) {
+      alert("Customer name is required.");
+      return;
+    }
+
+    const calculatedTotal = editForm.isParchi
+      ? Number(editForm.manualTotal) || 0
+      : editForm.items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
+
+    const updatedOrder = {
+      ...editingOrder,
+      customer: editForm.customer.trim(),
+      phone: editForm.phone.trim(),
+      payment: editForm.payment,
+      status: editForm.status,
+      date: editForm.date,
+      time: editForm.time,
+      notes: editForm.notes,
+      items: editForm.items,
+      isParchi: editForm.isParchi,
+      parchiText: editForm.parchiText,
+      total: calculatedTotal,
+      subtotal: calculatedTotal
+    };
+
+    const next = orders.map(o => o.id === updatedOrder.id ? updatedOrder : o);
+    await updateOrders(next);
+    setEditingOrder(null);
+    setEditForm(null);
+    if (activeBillModal?.id === updatedOrder.id) {
+      setActiveBillModal(updatedOrder);
+    }
+    showToast(`✅ Bill #${updatedOrder.id} updated successfully!`);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!canAdminManage || !deletingOrder) return;
+    const id = deletingOrder.id;
+    const next = orders.filter(o => o.id !== id);
+    await updateOrders(next);
+    setDeletingOrder(null);
+    if (activeBillModal?.id === id) {
+      setActiveBillModal(null);
+    }
+    showToast(`🗑️ Bill #${id} deleted permanently.`);
   };
 
   return (
@@ -446,7 +583,7 @@ export default function DailyBillsView({ orders = [], products = [], updateOrder
 
                       {/* Actions */}
                       <td style={{ padding: "16px 20px", textAlign: "right" }}>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", alignItems: "center", flexWrap: "wrap" }}>
                           <button
                             type="button"
                             onClick={() => setActiveBillModal(order)}
@@ -463,7 +600,7 @@ export default function DailyBillsView({ orders = [], products = [], updateOrder
                             }}
                             title="View itemized receipt breakdown"
                           >
-                            <Eye size={14} /> View Items
+                            <Eye size={14} /> View
                           </button>
 
                           <button
@@ -482,6 +619,50 @@ export default function DailyBillsView({ orders = [], products = [], updateOrder
                           >
                             <MessageSquare size={14} />
                           </button>
+
+                          {canAdminManage && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => startEditOrder(order)}
+                                className="mm-btn"
+                                style={{ 
+                                  background: "#eff6ff", 
+                                  color: "#1d4ed8", 
+                                  padding: "6px 10px", 
+                                  fontSize: 12, 
+                                  fontWeight: 700, 
+                                  border: "1px solid #bfdbfe",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 4
+                                }}
+                                title="Edit Bill Details (Admin Only)"
+                              >
+                                <Edit3 size={13} /> Edit
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setDeletingOrder(order)}
+                                className="mm-btn"
+                                style={{ 
+                                  background: "#fef2f2", 
+                                  color: "#dc2626", 
+                                  padding: "6px 10px", 
+                                  fontSize: 12, 
+                                  fontWeight: 700, 
+                                  border: "1px solid #fecaca",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 4
+                                }}
+                                title="Delete Bill Permanently (Admin Only)"
+                              >
+                                <Trash2 size={13} /> Delete
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -497,8 +678,425 @@ export default function DailyBillsView({ orders = [], products = [], updateOrder
       {activeBillModal && (
         <StandardBillModal 
           order={activeBillModal} 
-          onClose={() => setActiveBillModal(null)} 
+          onClose={() => setActiveBillModal(null)}
+          isAdmin={canAdminManage}
+          onEdit={(ord) => {
+            setActiveBillModal(null);
+            startEditOrder(ord);
+          }}
+          onDelete={(ord) => {
+            setActiveBillModal(null);
+            setDeletingOrder(ord);
+          }}
         />
+      )}
+
+      {/* EDIT BILL MODAL (ADMIN ONLY) */}
+      {editingOrder && editForm && canAdminManage && (
+        <div 
+          className="standard-bill-overlay"
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(15, 23, 42, 0.75)", zIndex: 1250,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16
+          }}
+          onClick={() => { setEditingOrder(null); setEditForm(null); }}
+        >
+          <div 
+            className="standard-bill-container"
+            style={{
+              width: "100%", maxWidth: 640, maxHeight: "90vh", overflowY: "auto",
+              background: "white", borderRadius: 16, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.3)",
+              position: "relative"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", background: "#f8fafc", borderBottom: "1px solid var(--border)" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>✏️</span>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text-dark)" }}>
+                    Edit Bill #{editingOrder.id}
+                  </h3>
+                  <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 800 }}>
+                    Admin Only
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-gray)", marginTop: 2 }}>
+                  Modify customer name, phone, payment mode, items, or status.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setEditingOrder(null); setEditForm(null); }}
+                style={{ background: "#f1f5f9", border: "none", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveEdit} style={{ padding: "20px 24px" }}>
+              {/* Customer & Phone */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-dark)", marginBottom: 6 }}>
+                    Customer Name *
+                  </label>
+                  <input 
+                    type="text" 
+                    required
+                    className="mm-input"
+                    value={editForm.customer}
+                    onChange={e => setEditForm({ ...editForm, customer: e.target.value })}
+                    placeholder="e.g. Rakesh Sharma"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-dark)", marginBottom: 6 }}>
+                    Phone Number
+                  </label>
+                  <input 
+                    type="text" 
+                    className="mm-input"
+                    value={editForm.phone}
+                    onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                    placeholder="e.g. 9811223344"
+                  />
+                </div>
+              </div>
+
+              {/* Payment & Status */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-dark)", marginBottom: 6 }}>
+                    Payment Mode
+                  </label>
+                  <select
+                    className="mm-input"
+                    value={editForm.payment}
+                    onChange={e => setEditForm({ ...editForm, payment: e.target.value })}
+                  >
+                    <option value="cash">💵 Cash at Counter</option>
+                    <option value="upi">📱 Direct UPI QR</option>
+                    <option value="khata">📒 Store Credit (Khata Ledger)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-dark)", marginBottom: 6 }}>
+                    Order Status
+                  </label>
+                  <select
+                    className="mm-input"
+                    value={editForm.status}
+                    onChange={e => setEditForm({ ...editForm, status: e.target.value })}
+                  >
+                    <option value="Completed">✅ Completed</option>
+                    <option value="Ready">🟢 Ready for Pickup</option>
+                    <option value="Preparing">🟡 Preparing</option>
+                    <option value="Cancelled">🔴 Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Date & Time */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-dark)", marginBottom: 6 }}>
+                    Date
+                  </label>
+                  <input 
+                    type="text" 
+                    className="mm-input"
+                    value={editForm.date}
+                    onChange={e => setEditForm({ ...editForm, date: e.target.value })}
+                    placeholder="DD/MM/YYYY or Today"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-dark)", marginBottom: 6 }}>
+                    Time
+                  </label>
+                  <input 
+                    type="text" 
+                    className="mm-input"
+                    value={editForm.time}
+                    onChange={e => setEditForm({ ...editForm, time: e.target.value })}
+                    placeholder="e.g. 10:45 AM"
+                  />
+                </div>
+              </div>
+
+              {/* Items Breakdown Editor */}
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <label style={{ fontSize: 13, fontWeight: 800, color: "var(--text-dark)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Bill Items ({editForm.items.length})
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddCustomItem}
+                    style={{ background: "#f1f5f9", border: "1px solid var(--border)", padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                  >
+                    <Plus size={13} /> Add Custom Item
+                  </button>
+                </div>
+
+                {/* Quick Add Product from store catalogue */}
+                {products && products.length > 0 && (
+                  <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                    <select
+                      className="mm-input"
+                      style={{ flex: 1, fontSize: 12, padding: "8px 12px" }}
+                      value={selectedAddProductId}
+                      onChange={e => setSelectedAddProductId(e.target.value)}
+                    >
+                      <option value="">-- Add product from store catalogue --</option>
+                      {products.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.unit || ""}) - {money(p.price)}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => handleAddItem(selectedAddProductId)}
+                      disabled={!selectedAddProductId}
+                      className="mm-btn-primary"
+                      style={{ padding: "8px 14px", fontSize: 12, fontWeight: 700, opacity: selectedAddProductId ? 1 : 0.5 }}
+                    >
+                      Add Item
+                    </button>
+                  </div>
+                )}
+
+                {/* Items Table in Edit Form */}
+                {editForm.items.length === 0 ? (
+                  <div style={{ padding: 16, background: "#f8fafc", borderRadius: 8, textAlign: "center", color: "var(--text-gray)", fontSize: 13 }}>
+                    No items in this bill. Click "Add Custom Item" or select from store catalogue above.
+                  </div>
+                ) : (
+                  <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: "#f8fafc", borderBottom: "1px solid var(--border)", color: "var(--text-gray)", textAlign: "left" }}>
+                          <th style={{ padding: "8px 10px" }}>Item Name</th>
+                          <th style={{ padding: "8px 10px", width: 85, textAlign: "right" }}>Rate (₹)</th>
+                          <th style={{ padding: "8px 10px", width: 95, textAlign: "center" }}>Qty</th>
+                          <th style={{ padding: "8px 10px", width: 85, textAlign: "right" }}>Total</th>
+                          <th style={{ padding: "8px 10px", width: 40, textAlign: "center" }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {editForm.items.map((item, idx) => (
+                          <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            <td style={{ padding: "8px 10px" }}>
+                              <input
+                                type="text"
+                                value={item.name}
+                                onChange={e => handleUpdateItem(idx, "name", e.target.value)}
+                                style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", fontSize: 12, fontWeight: 600 }}
+                              />
+                            </td>
+                            <td style={{ padding: "8px 10px" }}>
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={item.price}
+                                onChange={e => handleUpdateItem(idx, "price", e.target.value)}
+                                style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 6px", fontSize: 12, textAlign: "right" }}
+                              />
+                            </td>
+                            <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                              <div style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateItem(idx, "qty", Math.max(1, (Number(item.qty) || 1) - 1))}
+                                  style={{ width: 22, height: 22, borderRadius: 4, border: "1px solid #cbd5e1", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={item.qty}
+                                  onChange={e => handleUpdateItem(idx, "qty", Math.max(1, Number(e.target.value) || 1))}
+                                  style={{ width: 34, border: "1px solid #e2e8f0", borderRadius: 4, padding: "3px 2px", textAlign: "center", fontSize: 12, fontWeight: 700 }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateItem(idx, "qty", (Number(item.qty) || 1) + 1)}
+                                  style={{ width: 22, height: 22, borderRadius: 4, border: "1px solid #cbd5e1", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </td>
+                            <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 700, color: "var(--text-dark)" }}>
+                              {money((Number(item.price) || 0) * (Number(item.qty) || 1))}
+                            </td>
+                            <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(idx)}
+                                style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", padding: 4 }}
+                                title="Remove item"
+                              >
+                                <X size={15} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Grand Total Display */}
+              <div style={{ background: "#f8fafc", padding: "14px 18px", borderRadius: 10, border: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: "var(--text-gray)", textTransform: "uppercase", fontWeight: 700 }}>
+                    Updated Grand Total
+                  </div>
+                  <div style={{ fontSize: 12, color: editForm.payment === "khata" ? "#c2410c" : "#15803d", fontWeight: 600, marginTop: 2 }}>
+                    {editForm.payment === "khata" ? "📒 Store Credit (Customer Khata Due)" : "💵 Paid in Full"}
+                  </div>
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: "var(--brand)" }}>
+                  {money(
+                    editForm.isParchi 
+                      ? Number(editForm.manualTotal) || 0 
+                      : editForm.items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0)
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: "flex", gap: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => { setEditingOrder(null); setEditForm(null); }}
+                  className="mm-btn"
+                  style={{ flex: 1, padding: 12, background: "white", color: "var(--text-dark)", fontWeight: 700 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="mm-btn-primary"
+                  style={{ flex: 2, padding: 12, background: "var(--brand)", color: "white", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                >
+                  <Save size={16} /> Save Bill Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE BILL MODAL (ADMIN ONLY) */}
+      {deletingOrder && canAdminManage && (
+        <div 
+          className="standard-bill-overlay"
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(15, 23, 42, 0.75)", zIndex: 1300,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16
+          }}
+          onClick={() => setDeletingOrder(null)}
+        >
+          <div 
+            className="standard-bill-container"
+            style={{
+              width: "100%", maxWidth: 460,
+              background: "white", borderRadius: 16, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.3)",
+              padding: 24, position: "relative"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#fee2e2", color: "#dc2626", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#0f172a" }}>
+                  Delete Bill #{deletingOrder.id}?
+                </h3>
+                <div style={{ fontSize: 12, color: "#dc2626", fontWeight: 700 }}>
+                  👑 Admin Action • Permanent Deletion
+                </div>
+              </div>
+            </div>
+
+            <div style={{ background: "#f8fafc", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ color: "var(--text-gray)" }}>Customer:</span>
+                <strong>{deletingOrder.customer} ({deletingOrder.phone || "-"})</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ color: "var(--text-gray)" }}>Total Amount:</span>
+                <strong style={{ color: "var(--brand)" }}>{money(deletingOrder.total || orderTotal(deletingOrder))}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ color: "var(--text-gray)" }}>Payment Mode:</span>
+                <span style={{ textTransform: "capitalize", fontWeight: 700 }}>{deletingOrder.payment}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-gray)" }}>Date:</span>
+                <span>{deletingOrder.date || "Today"}</span>
+              </div>
+            </div>
+
+            {deletingOrder.payment === "khata" && (
+              <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", padding: "10px 14px", borderRadius: 8, marginBottom: 16, fontSize: 12, color: "#c2410c" }}>
+                ⚠️ <strong>Store Credit (Khata) Notice:</strong> This bill was charged to <strong>{deletingOrder.customer}</strong>'s ledger. Deleting it will reduce their outstanding due by <strong>{money(deletingOrder.total || orderTotal(deletingOrder))}</strong>.
+              </div>
+            )}
+
+            <p style={{ margin: "0 0 20px 0", fontSize: 13, color: "var(--text-gray)" }}>
+              Are you sure you want to permanently delete this bill? This action cannot be undone.
+            </p>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setDeletingOrder(null)}
+                className="mm-btn"
+                style={{ flex: 1, padding: 12, background: "white", color: "var(--text-dark)", fontWeight: 700 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="mm-btn-danger"
+                style={{ flex: 1, padding: 12, background: "#dc2626", color: "white", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+              >
+                <Trash2 size={16} /> Yes, Delete Bill
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING ACTION TOAST */}
+      {toastMsg && (
+        <div 
+          style={{ 
+            position: "fixed", bottom: 24, right: 24,
+            background: "#0f172a", color: "white", padding: "12px 20px", borderRadius: 12,
+            fontSize: 13, fontWeight: 700, zIndex: 1400, boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
+            display: "flex", alignItems: "center", gap: 8, animation: "fadeIn 0.2s ease"
+          }}
+        >
+          <CheckCircle size={16} color="#4ade80" /> {toastMsg}
+        </div>
       )}
     </div>
   );

@@ -1532,6 +1532,8 @@ export default function AdminView({
           orders={orders} 
           products={products} 
           updateOrders={updateOrders} 
+          isAdmin={true}
+          user={user}
         />
       )}
 

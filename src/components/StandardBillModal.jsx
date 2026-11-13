@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { 
   Store, Printer, MessageSquare, X, CheckCircle, 
   Clock, Phone, User, QrCode, FileText, Check, ShieldCheck,
-  Camera, Download, Share2, Loader2
+  Camera, Download, Share2, Loader2, Edit3, Trash2
 } from "lucide-react";
 import { toPng, toBlob } from "html-to-image";
 import { money, orderTotal, STORE_CONFIG } from "../data/store";
@@ -30,7 +30,7 @@ function numberToWordsIN(num) {
   }
 }
 
-export default function StandardBillModal({ order, onClose }) {
+export default function StandardBillModal({ order, onClose, isAdmin = false, onEdit = null, onDelete = null }) {
   if (!order) return null;
 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -243,6 +243,37 @@ export default function StandardBillModal({ order, onClose }) {
             >
               <MessageSquare size={14} /> WhatsApp
             </button>
+
+            {isAdmin && onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(order)}
+                style={{
+                  background: "#eff6ff", border: "1px solid #bfdbfe", padding: "7px 12px",
+                  borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 5, color: "#1d4ed8"
+                }}
+                title="Edit this bill details (Admin Only)"
+              >
+                <Edit3 size={13} /> Edit
+              </button>
+            )}
+
+            {isAdmin && onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(order)}
+                style={{
+                  background: "#fef2f2", border: "1px solid #fecaca", padding: "7px 12px",
+                  borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 5, color: "#dc2626"
+                }}
+                title="Permanently delete this bill (Admin Only)"
+              >
+                <Trash2 size={13} /> Delete
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onClose}
@@ -510,6 +541,36 @@ export default function StandardBillModal({ order, onClose }) {
           >
             <MessageSquare size={16} /> WhatsApp Bill
           </button>
+
+          {isAdmin && onEdit && (
+            <button
+              type="button"
+              onClick={() => onEdit(order)}
+              className="mm-btn"
+              style={{ 
+                minWidth: 110, padding: "12px 16px", 
+                background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6 
+              }}
+            >
+              <Edit3 size={16} /> Edit
+            </button>
+          )}
+
+          {isAdmin && onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(order)}
+              className="mm-btn"
+              style={{ 
+                minWidth: 110, padding: "12px 16px", 
+                background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6 
+              }}
+            >
+              <Trash2 size={16} /> Delete
+            </button>
+          )}
         </div>
       </div>
     </div>

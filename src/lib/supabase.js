@@ -234,6 +234,20 @@ export async function upsertSupabaseOrder(order) {
   }
 }
 
+export async function deleteSupabaseOrder(id) {
+  const client = supabase();
+  if (!client) return false;
+
+  try {
+    const { error } = await client.from("orders").delete().eq("id", id);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error("deleteSupabaseOrder error:", err.message);
+    return false;
+  }
+}
+
 // 3. CUSTOMERS & CREDIT LEDGER
 export async function fetchSupabaseCustomers() {
   const client = supabase();
